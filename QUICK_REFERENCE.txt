@@ -1,0 +1,257 @@
+# 🎯 macOS Deployment Quick Reference Card
+
+**Saved to**: `/Users/vara/IdeaProjects/JobPulseAutoApply/`
+**Executable Scripts**:
+- `check-prerequisites.sh` - Verify all tools are installed
+- `launch-jobpulse.sh` - Automatic all-in-one launcher
+
+---
+
+## ⚡ FASTEST START (2 Commands!)
+
+### Make Scripts Executable
+```bash
+cd /Users/vara/IdeaProjects/JobPulseAutoApply
+chmod +x check-prerequisites.sh
+chmod +x launch-jobpulse.sh
+```
+
+### Check Prerequisites
+```bash
+./check-prerequisites.sh
+```
+
+### Launch Everything
+```bash
+./launch-jobpulse.sh
+```
+
+**That's it!** Script will guide you through everything.
+
+---
+
+## 📋 MANUAL QUICK REFERENCE
+
+### Prerequisites Verification (One-Liner)
+```bash
+brew --version && git --version && java -version && mvn -version && docker --version && docker-compose --version && node --version && npm --version && echo "✅ ALL GOOD"
+```
+
+### Install Missing Tools
+```bash
+# Homebrew (if needed)
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# All tools at once
+brew install git openjdk@21 maven node
+
+# Docker Desktop
+# Download from: https://www.docker.com/products/docker-desktop
+```
+
+---
+
+## 🚀 DOCKER METHOD (3 Terminals)
+
+### Terminal 1: Database
+```bash
+cd ~/path/to/JobPulseAutoApply
+docker-compose up -d postgres redis
+docker-compose ps  # Verify
+```
+
+### Terminal 2: Backend
+```bash
+mvn clean install -DskipTests
+mvn spring-boot:run -Dspring-boot.run.arguments="--spring.profiles.active=dev"
+```
+
+### Terminal 3: Frontend
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+### Open Browser
+```
+http://localhost:3000
+```
+
+---
+
+## 🍯 JAR METHOD (3 Terminals)
+
+### Terminal 1: Database
+```bash
+docker-compose up -d postgres redis
+docker-compose ps
+```
+
+### Terminal 2: Backend
+```bash
+mvn clean install -DskipTests
+java -jar target/job-pulse-auto-apply-1.0.0.jar
+```
+
+### Terminal 3: Frontend
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+### Open Browser
+```
+http://localhost:3000
+```
+
+---
+
+## 🛑 STOP EVERYTHING
+
+```bash
+# Terminal 1 or new terminal
+docker-compose down
+
+# Terminal 2 - Press Ctrl+C
+# Terminal 3 - Press Ctrl+C
+```
+
+---
+
+## 🔍 USEFUL COMMANDS
+
+```bash
+# Check if Docker is running
+docker ps
+
+# View all containers
+docker-compose ps
+
+# View backend logs
+docker-compose logs postgres
+
+# Reset database
+docker-compose down -v
+docker-compose up -d postgres redis
+
+# Check if port is in use
+lsof -i :8080
+lsof -i :3000
+
+# Kill process on port
+kill -9 <PID>
+
+# Test backend health
+curl http://localhost:8080/api/health
+
+# Test frontend
+curl http://localhost:3000
+```
+
+---
+
+## 📱 URLS WHEN RUNNING
+
+| Service | URL | Purpose |
+|---------|-----|---------|
+| Frontend | http://localhost:3000 | Main application |
+| Backend API | http://localhost:8080 | REST API |
+| Swagger UI | http://localhost:8080/api/swagger-ui.html | API documentation |
+| PgAdmin | http://localhost:5050 | Database management |
+| Redis | localhost:6379 | Cache (internal) |
+| PostgreSQL | localhost:5432 | Database (internal) |
+
+---
+
+## 🆘 QUICK FIXES
+
+| Problem | Solution |
+|---------|----------|
+| `command not found: docker` | Install Docker Desktop |
+| `command not found: java` | `brew install openjdk@21` |
+| `Port 8080 in use` | `kill -9 $(lsof -t -i:8080)` |
+| `Port 3000 in use` | `kill -9 $(lsof -t -i:3000)` |
+| `npm install hangs` | `npm cache clean --force` |
+| `Docker daemon not running` | Open Docker Desktop app |
+| `Can't connect to database` | `docker-compose up -d postgres` |
+| `Build fails` | `mvn clean install -U` |
+
+---
+
+## 📊 KEY DIFFERENCES
+
+| Aspect | Docker | JAR |
+|--------|--------|-----|
+| Setup Time | 3 min | 5 min |
+| Isolation | Complete | Shared |
+| Recommended For | Teams | Individual Dev |
+| Disk Space | 5-10 GB | 2-3 GB |
+| Startup Speed | Fast | Fast |
+
+---
+
+## 📚 DOCUMENTATION
+
+- **MACOS_DEPLOYMENT_GUIDE.md** - Complete detailed guide
+- **PHASES_3_7_FINAL_SUMMARY.md** - What's implemented
+- **PHASES_3_7_QUICKSTART.md** - Features overview
+
+---
+
+## ✅ CHECKLIST
+
+Before launching:
+- [ ] Java 21: `java -version`
+- [ ] Maven: `mvn -version`
+- [ ] Git: `git --version`
+- [ ] Node: `node --version`
+- [ ] npm: `npm --version`
+- [ ] Docker: `docker --version` (for Docker method)
+
+All checked? Launch now! 🚀
+
+---
+
+## 🎉 FIRST USE
+
+1. Open http://localhost:3000
+2. Click "Register"
+3. Username: `demo`
+4. Password: `demo123`
+5. Email: `demo@example.com`
+6. Click "Register"
+7. Login with credentials
+8. Upload resume in "Resumes" tab
+9. Click "Ingest Jobs" in "Jobs" tab
+10. Click "Auto-Apply"
+11. View results in "Applications" tab
+
+**Done!** 🎊
+
+---
+
+## 📞 HELP
+
+```bash
+# Check everything
+./check-prerequisites.sh
+
+# Read complete guide
+cat MACOS_DEPLOYMENT_GUIDE.md
+
+# Check health
+curl http://localhost:8080/api/health
+
+# View backend logs
+docker-compose logs postgres -f
+
+# Test database
+docker-compose exec postgres psql -U jobpulse -d jobpulse -c "SELECT 1;"
+```
+
+---
+
+**Ready to launch?** Run: `./launch-jobpulse.sh` 🚀
+
