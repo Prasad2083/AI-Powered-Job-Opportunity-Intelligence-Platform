@@ -45,6 +45,10 @@ echo "$!" > .local-logs/backend.pid
 echo "Waiting for the browser interface..."
 for i in $(seq 1 90); do
   if curl -fsS http://127.0.0.1:5173/ >/dev/null; then
+    if ! kill -0 "$(cat .local-logs/backend.pid)" 2>/dev/null; then
+      echo "Backend stopped unexpectedly; check .local-logs/backend.log" >&2
+      exit 1
+    fi
     open http://localhost:5173
     echo "JobPulse opened: http://localhost:5173"
     echo "Backend logs: .local-logs/backend.log"
