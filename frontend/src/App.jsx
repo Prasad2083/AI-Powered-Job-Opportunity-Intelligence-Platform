@@ -23,7 +23,7 @@ function App() {
   return (
     <div className="app">
       <nav className="navbar">
-        <h1>JobPulse Auto Apply</h1>
+        <h1>JobPulse</h1>
         <div className="nav-links">
           <button onClick={() => setCurrentPage('jobs')} className={currentPage === 'jobs' ? 'active' : ''}>
             Jobs
@@ -31,6 +31,7 @@ function App() {
           <button onClick={() => setCurrentPage('resumes')} className={currentPage === 'resumes' ? 'active' : ''}>
             Resumes
           </button>
+          <button onClick={() => setCurrentPage('matches')}>Matches</button>
           <button onClick={() => setCurrentPage('applications')} className={currentPage === 'applications' ? 'active' : ''}>
             Applications
           </button>
@@ -42,6 +43,7 @@ function App() {
         {currentPage === 'jobs' && <JobsPage token={token} />}
         {currentPage === 'resumes' && <ResumesPage token={token} />}
         {currentPage === 'applications' && <ApplicationsPage token={token} />}
+        {currentPage === 'matches' && <MatchesPage token={token} />}
       </main>
     </div>
   );
@@ -272,6 +274,41 @@ function ResumesPage({ token }) {
   );
 }
 
+function MatchesPage({ token }) {
+  const [matches,setMatches] = useState([]);
+  const [draft,setDraft] = useState(null);
+  const [error,setError] = useState('');
+  const [loading,setLoading] = useState(false);
+  const load = async () => {
+    setLoading(true); setError('');
+    try { const result = await axios.get(`${API_BASE}/matches`,{headers:{Authorization:`Bearer ${token}`}}); setMatches(result.data); }
+    catch (e) {setError(e.response?.data?.message || 'Upload a resume to begin matching');}
+    finally {setLoading(false);}
+  };
+  const tailor = async (id) => {
+    setLoading(true);setError('');
+    try { const result=await axios.post(`${API_BASE}/tailoring/${id}`,{}, {headers:{Authorization:`Bearer ${token}`}});setDraft(result.data);}
+    catch (e){setError(e.response?.data?.message || 'AI draft failed; check server configuration');}
+    finally {setLoading(false);}
+  };
+  useEffect(()=>{load()},[]);
+  return <div className="page"><h2>Resume matched opportunities</h2>
+    <p>All matches require your review. No applications are submitted automatically.</p>
+    <button onClick={load} disabled={loading}>Refresh matches</button>
+    {error && <p role="alert">{error}</p>}
+    {matches.map(m=><div key={m.jobId} className="auth-card" style={{margin:'12px 0'}}>
+      <h3>{m.title} — {m.company}</h3><p>{m.score}% textual overlap · {m.source}</p>
+      <button onClick={()=>tailor(m.jobId)} disabled={loading}>Generate truthful tailored draft</button>
+      {' '}
+      <a href={m.applyUrl} target="_blank" rel="noopener noreferrer">Review external application</a>
+    </div>)}
+    {draft && <section><h2>Review draft for job #{draft.jobId}</h2>
+      <p>This draft has not been applied or submitted. Verify all claims before using it.</p>
+      <textarea readOnly value={draft.draft} rows={20} style={{width:'100%'}} />
+      <button onClick={()=>navigator.clipboard.writeText(draft.draft)}>Copy draft</button>
+    </section>}
+  </div>
+}
 function ApplicationsPage({ token }) {
   const [applications, setApplications] = useState([]);
 
