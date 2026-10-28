@@ -5,6 +5,9 @@ import com.jobpulse.domain.entity.JobSource;
 import com.jobpulse.domain.repository.JobRepository;
 import com.jobpulse.domain.repository.JobSourceRepository;
 import com.jobpulse.infrastructure.client.MockJobBoardClient;
+import com.jobpulse.infrastructure.adapter.PublicJobFeedService;
+import org.springframework.beans.factory.annotation.Value;
+import java.util.ArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -19,11 +22,14 @@ public class JobIngestionService {
 
     private final Logger log = LoggerFactory.getLogger(JobIngestionService.class);
     private final MockJobBoardClient client;
+    private final PublicJobFeedService realFeeds;
+    @Value("${jobpulse.feeds.include-mock:false}") private boolean includeMock;
     private final JobRepository jobRepository;
     private final JobSourceRepository jobSourceRepository;
 
-    public JobIngestionService(MockJobBoardClient client, JobRepository jobRepository, JobSourceRepository jobSourceRepository) {
+    public JobIngestionService(MockJobBoardClient client, JobRepository jobRepository, JobSourceRepository jobSourceRepository, PublicJobFeedService realFeeds) {
         this.client = client;
+        this.realFeeds = realFeeds;
         this.jobRepository = jobRepository;
         this.jobSourceRepository = jobSourceRepository;
     }
@@ -33,7 +39,8 @@ public class JobIngestionService {
     @Transactional
     public void ingestJobs() {
         log.info("Starting job ingestion");
-        List<MockJobBoardClient.ExternalJob> externalJobs = client.fetchJobs();
+        List<MockJobBoardClient.ExternalJob> externalJobs = new ArrayList<>(realFeeds.fetch());
+        if (includeMock) externalJobs.addAll(client.fetchJobs());
 
         for (MockJobBoardClient.ExternalJob ej : externalJobs) {
             jobRepository.findBySourceJobId(ej.externalId).ifPresentOrElse(
