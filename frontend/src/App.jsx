@@ -131,6 +131,8 @@ function JobsPage({ token }) {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filter,setFilter] = useState('');
+  const [showManual,setShowManual]=useState(false);
+  const [manual,setManual]=useState({title:'',company:'',location:'',applyUrl:'',description:''});
   const [error,setError] = useState('');
 
   const fetchJobs = async () => {
@@ -159,6 +161,17 @@ function JobsPage({ token }) {
     }
   };
 
+  const saveManual = async (e) => {
+    e.preventDefault(); setError('');
+    try {
+      await axios.post(`${API_BASE}/jobs/manual`,manual,{headers:{Authorization:`Bearer ${token}`}});
+      setManual({title:'',company:'',location:'',applyUrl:'',description:''});
+      setShowManual(false);
+      await fetchJobs();
+    } catch(err) {
+      setError('Unable to save pasted job: '+(err.response?.data?.error||err.response?.data?.message||err.message));
+    }
+  };
   const triggerApply = async () => {
     try {
       await axios.post(`${API_BASE}/jobs/autoapply`, {}, {
@@ -182,7 +195,18 @@ function JobsPage({ token }) {
         <button onClick={triggerIngest} className="btn-primary">Ingest Jobs</button>
 
         <button onClick={fetchJobs} className="btn-secondary">Refresh</button>
+        <button onClick={()=>setShowManual(!showManual)} type="button">{showManual ? "Cancel pasted job" : "Paste a job description"}</button>
       </div>
+      {showManual && <form onSubmit={saveManual} className="auth-card" style={{display:'grid',gap:10,maxWidth:680,marginBottom:18}}>
+        <h3>Add a job for resume matching</h3>
+        <p>Manually entered jobs are not independently verified.</p>
+        <input required maxLength={255} placeholder="Job title" value={manual.title} onChange={e=>setManual({...manual,title:e.target.value})} />
+        <input required maxLength={255} placeholder="Employer" value={manual.company} onChange={e=>setManual({...manual,company:e.target.value})} />
+        <input placeholder="Location" value={manual.location} onChange={e=>setManual({...manual,location:e.target.value})} />
+        <input type="url" placeholder="Official application URL (optional, HTTPS)" value={manual.applyUrl} onChange={e=>setManual({...manual,applyUrl:e.target.value})} />
+        <textarea required minLength={40} rows={10} placeholder="Paste the full job description" value={manual.description} onChange={e=>setManual({...manual,description:e.target.value})} />
+        <button type="submit">Save job for matching</button>
+      </form>}
       <p>Find jobs from configured public employer feeds. An empty list means no jobs were returned or configured.</p>
       <input aria-label="Filter jobs" placeholder="Filter title, company or location" value={filter} onChange={e=>setFilter(e.target.value)} style={{width:'100%',maxWidth:420,padding:10,marginBottom:12}} />
       {error && <p role="alert">{error}</p>}
