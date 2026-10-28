@@ -41,17 +41,19 @@ public class AutoApplyService {
     }
 
     // Run every 10 minutes by default
-    @Scheduled(fixedDelayString = "${job.autoapply.delay:600000}")
+    
     @Transactional
     public void autoApplyPendingJobs() {
-        log.info("Starting auto-apply run");
+        log.info("Auto-submit disabled until real providers and individual user approvals are implemented");
+        return;
+        /*
         List<Job> pending = jobRepository.findByAppliedFalse();
         if (pending.isEmpty()) {
             log.info("No pending jobs to apply");
             return;
         }
 
-        Resume resume = resumeRepository.findFirstByActiveTrue().orElse(null);
+        Resume resume = resumeRepository.findFirstByIsPrimaryTrue().orElse(null);
         if (resume == null) {
             log.warn("No active resume found; skipping apply");
             return;
@@ -95,5 +97,6 @@ public class AutoApplyService {
                 log.error("Error applying to job {}: {}", job.getId(), e.getMessage(), e);
             }
         }
+        */
     }
 }
