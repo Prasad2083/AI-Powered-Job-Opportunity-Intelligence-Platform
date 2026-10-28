@@ -15,7 +15,7 @@ import java.util.Optional;
  * Phase 5: Authentication Controller - Register, Login, JWT tokens
  */
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/auth")
 public class AuthController {
 
     private final UserRepository userRepository;
