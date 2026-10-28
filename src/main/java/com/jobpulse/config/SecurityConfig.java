@@ -10,6 +10,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
 import com.jobpulse.common.util.JwtTokenUtil;
+import com.jobpulse.domain.repository.UserRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -36,7 +37,7 @@ import java.util.List;
 @Configuration
 public class SecurityConfig {
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, JwtTokenUtil tokens) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http, JwtTokenUtil tokens, UserRepository users) throws Exception {
         OncePerRequestFilter bearer = new OncePerRequestFilter() {
             @Override protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
                 String value = request.getHeader(HttpHeaders.AUTHORIZATION);
@@ -44,8 +45,8 @@ public class SecurityConfig {
                     String token = value.substring(7);
                     if (tokens.validateToken(token)) {
                         String name = tokens.getUsernameFromToken(token);
-                        String role = tokens.getRoleFromToken(token);
-                        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(name, null, List.of(new SimpleGrantedAuthority("ROLE_" + role))));
+                        users.findByUsername(name).filter(user -> user.isEnabled()).ifPresent(user ->
+                            SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(name, null, List.of(new SimpleGrantedAuthority("ROLE_" + (user.getRole() == null ? "USER" : user.getRole()))))));
                     }
                 }
                 chain.doFilter(request, response);
