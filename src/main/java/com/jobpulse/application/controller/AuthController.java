@@ -8,6 +8,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Email;
 import java.util.Map;
 import java.util.Optional;
 
@@ -29,7 +32,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest req) {
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req) {
         if (userRepository.findByUsername(req.getUsername()).isPresent()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Username already exists"));
         }
@@ -47,7 +50,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest req) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest req) {
         Optional<User> userOpt = userRepository.findByUsername(req.getUsername());
         if (!userOpt.isPresent()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Invalid credentials"));
@@ -67,9 +70,9 @@ public class AuthController {
     }
 
     public static class RegisterRequest {
-        public String username;
-        public String password;
-        public String email;
+        @NotBlank public String username;
+        @NotBlank public String password;
+        @Email @NotBlank public String email;
         public String fullName;
 
         public String getUsername() { return username; }
@@ -83,8 +86,8 @@ public class AuthController {
     }
 
     public static class LoginRequest {
-        public String username;
-        public String password;
+        @NotBlank public String username;
+        @NotBlank public String password;
 
         public String getUsername() { return username; }
         public void setUsername(String username) { this.username = username; }
