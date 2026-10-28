@@ -38,8 +38,7 @@ public class JobController {
 
     @PostMapping("/autoapply")
     public ResponseEntity<String> autoApplyNow() {
-        autoApplyService.autoApplyPendingJobs();
-        return ResponseEntity.ok("Auto-apply triggered");
+        return ResponseEntity.status(501).body("Auto-apply disabled until provider integration and per-user approval");
     }
 }
 
