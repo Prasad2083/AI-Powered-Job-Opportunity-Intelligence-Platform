@@ -54,8 +54,7 @@ for i in $(seq 1 90); do
     exit 1
   fi
   if curl -fsS http://127.0.0.1:3000/ >/dev/null 2>&1; then
-    # A missing public API route should return 404, while security-filtered requests return 401/403.
-    # Test a public auth endpoint, not the intentionally protected Swagger docs.
+    # Allow Spring Boot to finish starting, and test the public login endpoint.
     status="$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' --data '{}' http://127.0.0.1:8080/api/auth/login || true)"
     if [[ "$status" == "400" || "$status" == "422" ]]; then
       open http://localhost:3000
