@@ -38,6 +38,7 @@ export JOBPULSE_OLLAMA_URL=http://localhost:11434
 export VITE_API_BASE_URL=http://localhost:8080/api
 mkdir -p .local-logs
 echo "Starting backend and frontend..."
+mvn -q clean -DskipTests package > .local-logs/build.log 2>&1 || { echo "Backend build failed; see .local-logs/build.log" >&2; exit 1; }
 nohup mvn spring-boot:run > .local-logs/backend.log 2>&1 < /dev/null &
 echo "$!" > .local-logs/backend.pid
 (
@@ -48,13 +49,17 @@ echo "$!" > .local-logs/backend.pid
 )
 echo "Waiting for the browser interface..."
 for i in $(seq 1 90); do
-  if curl -fsS http://127.0.0.1:5173/ >/dev/null; then
+  if curl -fsS http://127.0.0.1:3000/ >/dev/null; then
+    if ! curl -fsS http://127.0.0.1:8080/api/v3/api-docs >/dev/null; then
+      echo "Frontend is running, but backend is not ready; check .local-logs/backend.log" >&2
+      exit 1
+    fi
     if ! kill -0 "$(cat .local-logs/backend.pid)" 2>/dev/null; then
       echo "Backend stopped unexpectedly; check .local-logs/backend.log" >&2
       exit 1
     fi
-    open http://localhost:5173
-    echo "JobPulse opened: http://localhost:5173"
+    open http://localhost:3000
+    echo "JobPulse opened: http://localhost:3000"
     echo "Backend logs: .local-logs/backend.log"
     exit 0
   fi
