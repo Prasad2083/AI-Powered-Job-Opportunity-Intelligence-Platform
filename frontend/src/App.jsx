@@ -219,6 +219,9 @@ function ResumesPage({ token }) {
   const [resumes, setResumes] = useState([]);
   const [file, setFile] = useState(null);
   const [error,setError] = useState('');
+  const [editing,setEditing] = useState(null);
+  const [resumeText,setResumeText] = useState('');
+  const [uploading,setUploading] = useState(false);
 
   const fetchResumes = async () => {
     try {
@@ -238,6 +241,7 @@ function ResumesPage({ token }) {
     const formData = new FormData();
     formData.append('file', file);
 
+    setError(''); setUploading(true);
     try {
       await axios.post(`${API_BASE}/resumes/upload`, formData, {
         headers: {
@@ -249,8 +253,19 @@ function ResumesPage({ token }) {
       setFile(null);
       fetchResumes();
     } catch (error) {
-      setError('Upload failed: ' + (error.response?.data?.error || error.message));
-    }
+      setError('Upload failed: ' + (error.response?.data?.error || error.response?.data?.message || error.message));
+    } finally { setUploading(false); }
+  };
+
+  const editResume = async (id) => {
+    setError('');
+    try { const response=await axios.get(`${API_BASE}/resumes/${id}/text`,{headers:{Authorization:`Bearer ${token}`}});setEditing(id);setResumeText(response.data.text); }
+    catch(error){setError('Unable to open resume: '+(error.response?.data?.message||error.message));}
+  };
+  const saveResume = async () => {
+    setError('');
+    try {await axios.put(`${API_BASE}/resumes/${editing}/text`,{text:resumeText},{headers:{Authorization:`Bearer ${token}`}});setEditing(null);await fetchResumes();}
+    catch(error){setError('Unable to save resume: '+(error.response?.data?.message||error.message));}
   };
 
   useEffect(() => {
@@ -266,7 +281,7 @@ function ResumesPage({ token }) {
           onChange={(e) => setFile(e.target.files[0])}
           accept=".pdf,.docx,.txt"
         />
-        <button type="submit" className="btn-primary">Upload Resume</button>
+        <button type="submit" disabled={!file || uploading} className="btn-primary">{uploading ? "Uploading..." : "Upload Resume"}</button>
       </form>
 
       {error && <p role="alert">{error}</p>}
@@ -274,10 +289,11 @@ function ResumesPage({ token }) {
       <ul className="resume-list">
         {resumes.map((resume) => (
           <li key={resume.id}>
-            {resume.filename} {resume.active && <span className="active-badge">Active</span>}
+            {resume.filename} {resume.active && <span className="active-badge">Active</span>} <button type="button" onClick={()=>editResume(resume.id)}>Edit extracted text</button>
           </li>
         ))}
       </ul>
+      {editing && <section><h3>Edit resume text</h3><p>Changes to this master resume affect future matches. Verify accuracy before saving.</p><textarea aria-label="Resume text" value={resumeText} onChange={e=>setResumeText(e.target.value)} rows={18} style={{width:"100%"}} /><button type="button" onClick={saveResume}>Save changes</button> <button type="button" onClick={()=>setEditing(null)}>Cancel</button></section>}
     </div>
   );
 }
