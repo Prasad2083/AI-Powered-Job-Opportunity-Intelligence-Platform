@@ -59,11 +59,9 @@ public class JwtTokenUtil {
      * Get role from token
      */
     public String getRoleFromToken(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
+        return Jwts.parser().verifyWith(getSigningKey())
+                .parseSignedClaims(token)
+                .getPayload()
                 .get("role", String.class);
     }
 
@@ -71,11 +69,9 @@ public class JwtTokenUtil {
      * Get username from token
      */
     public String getUsernameFromToken(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
+        return Jwts.parser().verifyWith(getSigningKey())
+                .parseSignedClaims(token)
+                .getPayload()
                 .getSubject();
     }
 
@@ -84,10 +80,8 @@ public class JwtTokenUtil {
      */
     public boolean validateToken(String token) {
         try {
-            Jwts.parserBuilder()
-                    .setSigningKey(getSigningKey())
-                    .build()
-                    .parseClaimsJws(token);
+            Jwts.parser().verifyWith(getSigningKey())
+                    .parseSignedClaims(token);
             return true;
         } catch (MalformedJwtException | ExpiredJwtException | UnsupportedJwtException | IllegalArgumentException e) {
             return false;
@@ -99,11 +93,9 @@ public class JwtTokenUtil {
      */
     public boolean isTokenExpired(String token) {
         try {
-            Claims claims = Jwts.parserBuilder()
-                    .setSigningKey(getSigningKey())
-                    .build()
-                    .parseClaimsJws(token)
-                    .getBody();
+            Claims claims = Jwts.parser().verifyWith(getSigningKey())
+                    .parseSignedClaims(token)
+                    .getPayload();
             return claims.getExpiration().before(new Date());
         } catch (ExpiredJwtException e) {
             return true;
