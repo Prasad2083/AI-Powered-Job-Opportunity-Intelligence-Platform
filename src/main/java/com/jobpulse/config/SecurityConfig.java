@@ -44,11 +44,9 @@ public class SecurityConfig {
                 String value = request.getHeader(HttpHeaders.AUTHORIZATION);
                 if (value != null && value.startsWith("Bearer ")) {
                     String token = value.substring(7);
-                    if (tokens.validateToken(token)) {
-                        String name = tokens.getUsernameFromToken(token);
-                        users.findByUsername(name).filter(user -> user.isEnabled()).ifPresent(user ->
-                            SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(name, null, List.of(new SimpleGrantedAuthority("ROLE_" + (user.getRole() == null ? "USER" : user.getRole()))))));
-                    }
+                    tokens.parseIdentity(token).ifPresent(identity ->
+                        users.findByUsername(identity.username()).filter(user -> user.isEnabled() && user.getTokenVersion() == identity.version()).ifPresent(user ->
+                            SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(user.getUsername(), null, List.of(new SimpleGrantedAuthority("ROLE_" + (user.getRole() == null ? "USER" : user.getRole())))))));
                 }
                 chain.doFilter(request, response);
             }
@@ -56,7 +54,8 @@ public class SecurityConfig {
         return http.csrf(csrf -> csrf.disable())
             .cors(cors -> {})
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth.requestMatchers("/auth/**", "/health").permitAll().anyRequest().authenticated())
+            .exceptionHandling(errors -> errors.authenticationEntryPoint((request, response, exception) -> response.sendError(401)))
+            .authorizeHttpRequests(auth -> auth.requestMatchers("/auth/register", "/auth/login", "/health").permitAll().anyRequest().authenticated())
             .addFilterBefore(bearer, UsernamePasswordAuthenticationFilter.class).build();
     }
 
@@ -71,8 +70,8 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(Arrays.asList(
             "http://localhost:3000",  // React dev server
             "http://localhost:5173",  // Vite dev server
-            "https://jobpulse.com",
-            "https://www.jobpulse.com",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:5173",
             frontendOrigin
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));

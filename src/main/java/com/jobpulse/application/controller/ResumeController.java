@@ -28,9 +28,10 @@ public class ResumeController {
     }
 
     @PostMapping(value = "/upload")
+    @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<Map<String,Object>> upload(@RequestParam("file") MultipartFile file,
                                          Authentication authentication) throws Exception {
-        Long ownId = users.findByUsername(authentication.getName()).orElseThrow().getId();
+        Long ownId = users.lockByUsername(authentication.getName()).orElseThrow().getId();
         Resume r = resumeService.storeResume(file, ownId);
         return ResponseEntity.ok(summary(r));
     }
@@ -54,7 +55,7 @@ public class ResumeController {
     @PutMapping("/{id}/text")
     public ResponseEntity<Map<String,Object>> updateText(@PathVariable Long id, @RequestBody Map<String,String> body, Authentication authentication) {
         Long uid=users.findByUsername(authentication.getName()).orElseThrow().getId();
-        String text=body.getOrDefault("text","").trim();
+        String text=java.util.Objects.toString(body.get("text"),"").trim();
         if(text.isBlank() || text.length()>100000) return ResponseEntity.badRequest().build();
         var resume=resumeRepository.findById(id).filter(r -> r.getUserId().equals(uid));
         if(resume.isEmpty()) return ResponseEntity.notFound().build();
@@ -62,6 +63,29 @@ public class ResumeController {
         r.setContentText(text);
         resumeRepository.save(r);
         return ResponseEntity.ok(summary(r));
+    }
+
+    @PutMapping("/{id}/primary")
+    @org.springframework.transaction.annotation.Transactional
+    public ResponseEntity<Map<String,Object>> primary(@PathVariable Long id, Authentication auth) {
+        Long uid=users.lockByUsername(auth.getName()).orElseThrow().getId();
+        var own=resumeRepository.findById(id).filter(r -> r.getUserId().equals(uid));
+        if (own.isEmpty()) return ResponseEntity.notFound().build();
+        for (Resume resume : resumeRepository.findByUserIdOrderByCreatedAtDesc(uid)) {
+            resume.setIsPrimary(resume.getId().equals(id));
+            resumeRepository.save(resume);
+        }
+        return ResponseEntity.ok(summary(own.get()));
+    }
+
+    @GetMapping("/{id}/original")
+    public ResponseEntity<byte[]> original(@PathVariable Long id, Authentication auth) {
+        Long uid=users.findByUsername(auth.getName()).orElseThrow().getId();
+        var own=resumeRepository.findById(id).filter(r -> r.getUserId().equals(uid));
+        if (own.isEmpty() || own.get().getOriginalFile()==null) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok().contentType(org.springframework.http.MediaType.APPLICATION_OCTET_STREAM)
+            .header("Content-Disposition", org.springframework.http.ContentDisposition.attachment().filename(own.get().getFileName(), java.nio.charset.StandardCharsets.UTF_8).build().toString())
+            .body(own.get().getOriginalFile());
     }
 
     private Map<String,Object> summary(Resume resume) {

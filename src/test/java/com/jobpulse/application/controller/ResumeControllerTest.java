@@ -21,6 +21,7 @@ class ResumeControllerTest {
         UserRepository users=mock(UserRepository.class);
         User user=new User(); user.setId(42L);user.setUsername("alice");
         when(users.findByUsername("alice")).thenReturn(Optional.of(user));
+        when(users.lockByUsername("alice")).thenReturn(Optional.of(user));
         Resume saved=new Resume();saved.setId(3L);saved.setUserId(42L);saved.setFileName("cv.txt");saved.setIsPrimary(true);
         var upload=new MockMultipartFile("file","cv.txt","text/plain","Java".getBytes(StandardCharsets.UTF_8));
         when(service.storeResume(upload,42L)).thenReturn(saved);
@@ -34,6 +35,7 @@ class ResumeControllerTest {
         UserRepository users=mock(UserRepository.class);
         User user=new User();user.setId(42L);
         when(users.findByUsername("alice")).thenReturn(Optional.of(user));
+        when(users.lockByUsername("alice")).thenReturn(Optional.of(user));
         Resume other=new Resume();other.setId(9L);other.setUserId(99L);
         when(resumes.findById(9L)).thenReturn(Optional.of(other));
         var result=new ResumeController(service,resumes,users).updateText(9L,java.util.Map.of("text","stolen"),new UsernamePasswordAuthenticationToken("alice",null));

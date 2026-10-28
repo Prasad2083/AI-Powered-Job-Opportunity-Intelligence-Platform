@@ -1,30 +1,43 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")"
-command -v brew >/dev/null || { echo "Install Homebrew first from https://brew.sh then rerun."; exit 1; }
-echo "Installing free local dependencies (only missing ones)..."
-brew list --formula openjdk@21 >/dev/null 2>&1 || brew install openjdk@21
-for dep in maven node ollama; do
-  brew list --formula "$dep" >/dev/null 2>&1 || brew install "$dep"
+# Reuse the installed Java 21 JDK and Docker Desktop; never install software.
+if [[ -x /usr/libexec/java_home ]]; then
+  JAVA_HOME="$(/usr/libexec/java_home -v 21 2>/dev/null || true)"
+  [[ -z "$JAVA_HOME" ]] || export JAVA_HOME PATH="$JAVA_HOME/bin:$PATH"
+elif command -v brew >/dev/null 2>&1 && [[ -d "$(brew --prefix)/opt/openjdk@21/bin" ]]; then
+  export JAVA_HOME="$(brew --prefix)/opt/openjdk@21"
+  export PATH="$JAVA_HOME/bin:$PATH"
+fi
+for dep in java javac mvn node npm ollama curl openssl docker lsof; do
+  command -v "$dep" >/dev/null || { echo "Missing $dep. See MAC_LOCAL_SETUP.md; the launcher installs nothing." >&2; exit 1; }
 done
-export PATH="$(brew --prefix openjdk@21)/bin:$(brew --prefix)/bin:$PATH"
-if ! command -v docker >/dev/null 2>&1; then
-  echo "Docker CLI was not found. Install and start Docker Desktop, then rerun." >&2
+java_version="$(java -version 2>&1 | head -n 1)"
+[[ "$java_version" == *'"21.'* ]] || { echo "Java 21 JDK required (found $java_version)." >&2; exit 1; }
+node -e 'const [major,minor]=process.versions.node.split(".").map(Number); if(major<22 || (major===22 && minor<16)) process.exit(1)' || { echo "Node 22.16+ required." >&2; exit 1; }
+mkdir -p .local-logs
+if ! mkdir .local-logs/launcher.lock 2>/dev/null; then
+  echo "Another launch is in progress. If a previous launcher crashed, remove .local-logs/launcher.lock after verifying it stopped." >&2
   exit 1
 fi
-if ! docker info >/dev/null 2>&1; then
-  echo "Docker is installed but its engine is not running. Start Docker Desktop, then rerun." >&2
-  exit 1
-fi
-if ! curl --silent --fail http://127.0.0.1:11434/api/tags >/dev/null; then
-  nohup ollama serve > /tmp/jobpulse-ollama.log 2>&1 < /dev/null &
-  for i in $(seq 1 30); do
-    curl --silent --fail http://127.0.0.1:11434/api/tags >/dev/null && break
-    sleep 1
-  done
-fi
-echo "Downloading local AI model (first launch only)..."
-ollama pull qwen3:4b
+started_backend=""; started_frontend=""; launch_ok=false
+cleanup() {
+  rmdir .local-logs/launcher.lock 2>/dev/null || true
+  if [[ "$launch_ok" != true ]]; then
+    [[ -z "$started_backend" ]] || kill "$started_backend" 2>/dev/null || true
+    [[ -z "$started_frontend" ]] || kill "$started_frontend" 2>/dev/null || true
+  fi
+}
+trap cleanup EXIT
+trap 'exit 130' INT TERM
+running() { [[ -f ".local-logs/$1.pid" ]] && kill -0 "$(cat ".local-logs/$1.pid")" 2>/dev/null; }
+for service in backend frontend; do
+  port=8080; [[ "$service" != frontend ]] || port=3000
+  if ! running "$service" && lsof -nP -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; then
+    echo "Port $port is occupied by an untracked process. Stop it before launching JobPulse." >&2
+    exit 1
+  fi
+done
 if [[ ! -f .env ]]; then
   umask 077
   printf 'DB_PASSWORD=%s\nJWT_SECRET=%s\n' "$(openssl rand -hex 24)" "$(openssl rand -hex 64)" > .env
@@ -32,36 +45,58 @@ fi
 set -a
 source .env
 set +a
-docker compose --env-file .env -f docker-compose.local.yml up -d --wait
+: "${DB_PASSWORD:?Set DB_PASSWORD in .env}"
+: "${JWT_SECRET:?Set JWT_SECRET in .env}"
+[[ ${#JWT_SECRET} -ge 64 && "$JWT_SECRET" != replace-* && "$JWT_SECRET" != your-* ]] || { echo "Generate JWT_SECRET with openssl rand -hex 64." >&2; exit 1; }
+if ! docker info >/dev/null 2>&1; then
+  echo "Start your existing Docker Desktop installation, then rerun." >&2; exit 1
+fi
+docker compose --env-file .env -f docker-compose.local.yml up -d --wait --wait-timeout 90
+export OLLAMA_HOST=http://127.0.0.1:11434
+export JOBPULSE_OLLAMA_URL=http://127.0.0.1:11434
+export JOBPULSE_OLLAMA_MODEL="${JOBPULSE_OLLAMA_MODEL:-qwen3:4b}"
+if ! curl --max-time 3 --silent --fail "$JOBPULSE_OLLAMA_URL/api/tags" >/dev/null; then
+  nohup ollama serve > .local-logs/ollama.log 2>&1 < /dev/null &
+  for ((i=0;i<30;i++)); do
+    curl --max-time 3 --silent --fail "$JOBPULSE_OLLAMA_URL/api/tags" >/dev/null && break
+    sleep 1
+  done
+fi
+curl --max-time 3 --silent --fail "$JOBPULSE_OLLAMA_URL/api/tags" >/dev/null || { echo "Ollama did not become ready; see .local-logs/ollama.log" >&2; exit 1; }
+if ! ollama show "$JOBPULSE_OLLAMA_MODEL" >/dev/null 2>&1; then
+  echo "Downloading missing local model: $JOBPULSE_OLLAMA_MODEL"
+  ollama pull "$JOBPULSE_OLLAMA_MODEL"
+fi
+export JOBPULSE_FEEDS_GREENHOUSE_BOARDS="${JOBPULSE_FEEDS_GREENHOUSE_BOARDS-canonical,reddit,gitlab}"
+export JOBPULSE_FEEDS_LEVER_SITES="${JOBPULSE_FEEDS_LEVER_SITES-ataccama,caseware}"
 export DB_HOST=localhost DB_PORT=5432 DB_NAME=jobpulse DB_USERNAME=jobpulse
-export JOBPULSE_OLLAMA_URL=http://localhost:11434
-export VITE_API_BASE_URL=http://localhost:8080/api
-mkdir -p .local-logs
-echo "Starting backend and frontend..."
-mvn -q clean -DskipTests package > .local-logs/build.log 2>&1 || { echo "Backend build failed; see .local-logs/build.log" >&2; exit 1; }
-nohup mvn spring-boot:run > .local-logs/backend.log 2>&1 < /dev/null &
-echo "$!" > .local-logs/backend.pid
-(
-  cd frontend
-  npm install
-  nohup npm run dev -- --host 127.0.0.1 > ../.local-logs/frontend.log 2>&1 < /dev/null &
-  echo "$!" > ../.local-logs/frontend.pid
-)
-echo "Waiting for frontend and backend..."
-for i in $(seq 1 90); do
-  if ! kill -0 "$(cat .local-logs/backend.pid)" 2>/dev/null; then
-    echo "Backend process stopped; see .local-logs/backend.log" >&2
-    exit 1
+export SERVER_PORT=8080 SERVER_ADDRESS=127.0.0.1
+# Use Vite's same-origin proxy, preserving the existing local URL.
+export VITE_API_BASE_URL=/api
+if ! running backend; then
+  echo "Building backend..."
+  mvn -q -DskipTests package > .local-logs/build.log 2>&1 || { echo "Backend build failed; see .local-logs/build.log" >&2; exit 1; }
+  nohup java -jar target/job-pulse-auto-apply-1.0.0.jar > .local-logs/backend.log 2>&1 < /dev/null &
+  started_backend=$!; echo "$started_backend" > .local-logs/backend.pid
+fi
+if ! running frontend; then
+  if [[ ! -d frontend/node_modules || ! -f .local-logs/frontend-lock.json ]] || ! cmp -s frontend/package-lock.json .local-logs/frontend-lock.json; then
+    (cd frontend && npm ci)
+    cp frontend/package-lock.json .local-logs/frontend-lock.json
   fi
-  if curl -fsS http://127.0.0.1:3000/ >/dev/null 2>&1; then
-    # Allow Spring Boot to finish starting, and test the public login endpoint.
-    status="$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' --data '{}' http://127.0.0.1:8080/api/auth/login || true)"
-    if [[ "$status" == "400" || "$status" == "422" ]]; then
-      open http://localhost:3000
-      echo "JobPulse opened: http://localhost:3000"
-      echo "Backend logs: .local-logs/backend.log"
-      exit 0
-    fi
+  (cd frontend && exec nohup node node_modules/vite/bin/vite.js --host 127.0.0.1) > .local-logs/frontend.log 2>&1 < /dev/null &
+  started_frontend=$!; echo "$started_frontend" > .local-logs/frontend.pid
+fi
+echo "Waiting for frontend and backend..."
+for ((i=0;i<90;i++)); do
+  running backend || { echo "Backend stopped; see .local-logs/backend.log" >&2; exit 1; }
+  running frontend || { echo "Frontend stopped; see .local-logs/frontend.log" >&2; exit 1; }
+  if curl --max-time 3 -fsS http://127.0.0.1:3000/ >/dev/null 2>&1 && curl --max-time 3 -fsS http://127.0.0.1:8080/api/health >/dev/null 2>&1; then
+    launch_ok=true
+    echo "JobPulse ready: http://localhost:3000"
+    echo "Logs: .local-logs/backend.log and .local-logs/frontend.log"
+    if command -v open >/dev/null 2>&1; then open http://localhost:3000 || true; fi
+    exit 0
   fi
   sleep 2
 done

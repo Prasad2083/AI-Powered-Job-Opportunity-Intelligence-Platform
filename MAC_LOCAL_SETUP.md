@@ -1,57 +1,58 @@
-# JobPulse on macOS (local-first, no paid subscription)
+# JobPulse on macOS
 
-## Install once
-- Homebrew (https://brew.sh)
-- Java 21: `brew install openjdk@21`
-- Maven: `brew install maven`
-- Node.js: `brew install node`
-- Docker Desktop or another compatible local Docker runtime (Docker Desktop licensing varies by organization; alternatives include Colima).
-- Ollama: `brew install ollama` or download from https://ollama.com.
+## Prerequisites
 
-## Download the AI model
-In Terminal:
+Reuse Docker Desktop and its local images. Start Docker Desktop before launching. Verify `docker info` succeeds. No extra database GUI, Redis, cloud hosting, or paid AI subscription is needed.
+
+Install missing tools once using your preferred method: Java 21 JDK (`java` and `javac`), Maven, Node 22.16+ or 24, and Ollama. Homebrew is optional. Examples: `brew install openjdk@21 maven node ollama`. The launcher itself installs nothing.
+
+## Launch
+
 ```bash
-ollama serve
+git switch feature/production-workflow-20261027
+bash start-mac.sh
 ```
-Open a second Terminal:
+
+The launcher selects an installed Java 21 JDK, reuses Docker Desktop, starts only the `postgres:16-alpine` service, and retains the named volume. On first launch it creates a private `.env` with random database and HS512 JWT secrets. An existing `.env` is never overwritten.
+
+Ollama runs locally at `127.0.0.1:11434`. `qwen3:4b` is downloaded only when `ollama show` confirms it is absent. Later launches reuse it. Model downloads require internet and local disk space; tailoring subsequently runs locally.
+
+Frontend: **http://localhost:3000**. Backend health: http://127.0.0.1:8080/api/health. PostgreSQL, backend, frontend, and Ollama remain bound to loopback for this launcher. Vite proxies `/api` to the backend.
+
+Logs and process IDs live in `.local-logs/`. Success requires both tracked processes to remain alive and both HTTP readiness checks to pass. A failed launch stops processes it started; it retains the database and existing services. Repeated launches reuse tracked running processes and installed frontend dependencies when the lockfile is unchanged.
+
+## Configuration
+
+If copying `.env.example`, replace its placeholders before running. Generate a JWT secret using `openssl rand -hex 64`; do not commit `.env`. Keep its file permissions private: `chmod 600 .env`.
+
+Optional settings in `.env`:
+
+```dotenv
+JOBPULSE_OLLAMA_MODEL=qwen3:4b
+JOBPULSE_FEEDS_GREENHOUSE_BOARDS=canonical,reddit,gitlab
+JOBPULSE_FEEDS_LEVER_SITES=ataccama,caseware
+JOBPULSE_FEEDS_INCLUDE_MOCK=false
+```
+
+Empty feed lists disable those providers. Employer slugs are configurable; a listing returned today is not a guarantee of future availability. The launcher uses local ports 5432, 8080, 3000, and 11434.
+
+Do not retain an old `SPRING_PROFILES_ACTIVE=dev` entry unless needed. Both normal and dev configurations now use Flyway and `ddl-auto=validate`; neither creates sample resumes or drops tables.
+
+## Recovery and stopping
+
+- **Missing Java compiler:** install a Java 21 JDK, not only a JRE. Verify `javac -version`.
+- **Docker unavailable:** start your existing Docker Desktop. Do not install another Docker engine.
+- **Database authentication failure:** existing volumes retain their original credentials. Restore the matching local password or deliberately rotate it inside PostgreSQL after taking a backup. Do not run `docker compose down -v`.
+- **Build/startup failure:** inspect `.local-logs/build.log`, `backend.log`, and `frontend.log`. The launcher will not report readiness for a stopped backend.
+- **Port occupied:** stop the conflicting process. The launcher refuses to take over an untracked service.
+- **Stale launcher lock:** verify the earlier launcher stopped before removing `.local-logs/launcher.lock`.
+- **Ollama unavailable:** inspect `.local-logs/ollama.log`, `ollama list`, and `ollama show qwen3:4b`. Draft generation returns a useful error; it never silently substitutes fabricated content.
+- **Historical original download missing:** earlier versions stored only extracted text. Upload the original again; bytes that were never stored cannot be recovered.
+
+To stop, inspect the PID files and their process commands, then terminate those JobPulse processes. Stop the database without deleting its volume:
+
 ```bash
-ollama pull qwen3:4b
-```
-Keep Ollama running while tailoring resumes.
-
-## Local environment
-Copy `.env.example` to `.env`, **do not commit** it. Set:
-```env
-DB_PASSWORD=choose-a-unique-local-password
-JWT_SECRET=generate-at-least-64-random-bytes-for-this-local-instance
-```
-Generate JWT_SECRET via `openssl rand -hex 64`.
-Use only local settings; never expose PostgreSQL or Ollama ports to the public internet.
-
-## Run database
-```bash
-docker compose --env-file .env -f docker-compose.local.yml up -d
+docker compose --env-file .env -f docker-compose.local.yml stop
 ```
 
-## Start backend
-```bash
-export DB_USERNAME=jobpulse DB_NAME=jobpulse DB_HOST=localhost DB_PORT=5432
-export DB_PASSWORD="$(grep '^DB_PASSWORD=' .env | cut -d= -f2-)"
-export JWT_SECRET="$(grep '^JWT_SECRET=' .env | cut -d= -f2-)"
-mvn spring-boot:run
-```
-Backend URL: http://localhost:8080/api.
-
-## Start React frontend
-```bash
-cd frontend
-npm install
-VITE_API_BASE_URL=http://localhost:8080/api npm run dev
-```
-Open http://localhost:5173.
-
-## Jobs
-Greenhouse and Lever discovery requires known public board/site slugs. Set `JOBPULSE_FEEDS_GREENHOUSE_BOARDS` and `JOBPULSE_FEEDS_LEVER_SITES` before starting backend. If none are configured and mock mode is disabled, ingestion returns zero real jobs; it does **not** pretend to have fetched jobs. Mock mode can be turned on with `JOBPULSE_FEEDS_INCLUDE_MOCK=true` for demonstrations.
-
-## Scope
-Resume upload, ranking, and Ollama-generated drafts are implemented but require end-to-end local verification. External applications are not automatically submitted; providers must support authorized submission and confirmation. The application cannot truthfully claim to have applied to a job based only on displaying a link.
+Back up before upgrades with `pg_dump` inside your database container and store the result securely. Flyway V1–V3 are unchanged; new migrations are additive. Actual Docker Desktop / Apple Silicon / Ollama performance still requires verification on your Mac; Linux test results do not establish macOS compatibility.

@@ -21,6 +21,33 @@ public class JwtTokenUtil {
     @Value("${app.security.jwt.refresh-expiration}")
     private long refreshTokenExpirationMs;
 
+    @jakarta.annotation.PostConstruct
+    void validateConfiguration() {
+        if(jwtSecret==null || jwtSecret.getBytes(StandardCharsets.UTF_8).length<64 || jwtSecret.startsWith("replace-") || jwtSecret.startsWith("your-"))
+            throw new IllegalStateException("JWT_SECRET must contain at least 64 bytes of generated secret material");
+        if(jwtExpirationMs<=0) throw new IllegalStateException("JWT expiration must be positive");
+    }
+
+    public String generateToken(String username,String role,long version) {
+        return Jwts.builder().subject(username).claim("role",role).claim("tokenVersion",version)
+            .issuedAt(new Date()).expiration(new Date(System.currentTimeMillis()+jwtExpirationMs))
+            .signWith(getSigningKey(),Jwts.SIG.HS512).compact();
+    }
+    public long getTokenVersion(String token) {
+        Number version=Jwts.parser().verifyWith(getSigningKey()).build().parseSignedClaims(token).getPayload().get("tokenVersion",Number.class);
+        return version==null?0:version.longValue();
+    }
+
+    public record TokenIdentity(String username,long version) {}
+    public java.util.Optional<TokenIdentity> parseIdentity(String token) {
+        try {
+            Claims claims=Jwts.parser().verifyWith(getSigningKey()).build().parseSignedClaims(token).getPayload();
+            if(claims.getExpiration()==null || claims.getSubject()==null || claims.getSubject().isBlank()) return java.util.Optional.empty();
+            Number version=claims.get("tokenVersion",Number.class);
+            return java.util.Optional.of(new TokenIdentity(claims.getSubject(),version==null?0:version.longValue()));
+        } catch(JwtException | IllegalArgumentException ex) { return java.util.Optional.empty(); }
+    }
+
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     }
@@ -83,7 +110,7 @@ public class JwtTokenUtil {
             Jwts.parser().verifyWith(getSigningKey()).build()
                     .parseSignedClaims(token);
             return true;
-        } catch (MalformedJwtException | ExpiredJwtException | UnsupportedJwtException | IllegalArgumentException e) {
+        } catch (JwtException | IllegalArgumentException e) {
             return false;
         }
     }

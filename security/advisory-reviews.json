@@ -1,0 +1,22 @@
+{
+  "reviews": [
+    {
+      "id": "GHSA-j9f9-w8pj-32f8",
+      "package": "org.springframework:spring-webmvc",
+      "version": "6.2.19",
+      "status": "not_affected",
+      "review_until": "2026-11-28",
+      "reason": "Requires server-sent-event fragment rendering. JobPulse exposes JSON REST endpoints and no SSE or fragment rendering. No fixed 6.2.x release was available at review. Reassess before introducing streaming views.",
+      "forbidden_source_patterns": ["SseEmitter", "FragmentsRendering", "text/event-stream", "TEXT_EVENT_STREAM"]
+    },
+    {
+      "id": "GHSA-pc63-qcmh-9cmg",
+      "package": "org.springframework:spring-webmvc",
+      "version": "6.2.19",
+      "status": "not_affected",
+      "review_until": "2026-11-28",
+      "reason": "Requires XsltView with implicit view names from a wildcard controller mapping. JobPulse uses RestController JSON endpoints, no XSLT views or templates, and no wildcard view-rendering controller. No fixed 6.2.x release was available at review.",
+      "forbidden_source_patterns": ["XsltView", "XsltViewResolver", "org.springframework.web.servlet.view.xslt"]
+    }
+  ]
+}

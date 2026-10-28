@@ -23,15 +23,15 @@ public class MatchController {
     }
     @GetMapping
     public List<Map<String,Object>> matches(Authentication auth) {
-        Long uid=users.findByUsername(auth.getName()).orElseThrow().getId();
+        var user=users.findByUsername(auth.getName()).orElseThrow();
+        Long uid=user.getId();
         Resume resume=resumes.findFirstByUserIdAndIsPrimaryTrue(uid).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"Upload a resume first"));
         List<Map<String,Object>> results=new ArrayList<>();
-        for (Job job : jobs.findAll()) {
-            double score=TextMatcher.score(job.getTitle()+" "+job.getJobDescription(),resume.getContentText());
+        for (Job job : jobs.findVisible(uid)) {
             Map<String,Object> result=new LinkedHashMap<>();
             result.put("jobId",job.getId()); result.put("title",job.getTitle()); result.put("company",job.getCompanyName());
-            result.put("applyUrl",job.getApplyUrl()); result.put("source",job.getSource().getName());
-            result.put("score",Math.round(score*10000.0)/100.0); result.put("status","REVIEW_REQUIRED");
+            result.put("lastSeenAt",job.getLastSeenAt()); result.put("applyUrl",job.getApplyUrl()); result.put("source",job.getSource().getName());
+            result.putAll(com.jobpulse.common.util.JobMatcher.evaluate(resume.getContentText(),job.getTitle(),job.getJobDescription(),job.getLocation(),user.getTargetRoles()==null?"Senior Quality Engineer,Lead Quality Engineer,SDET,Test Automation Engineer,Backend Java Developer,AI Quality Engineer":user.getTargetRoles(),user.getTargetLocations()==null?"Toronto,Greater Toronto Area,Remote Canada,Hybrid":user.getTargetLocations())); result.put("status","REVIEW_REQUIRED");
             results.add(result);
         }
         results.sort((a,b)->Double.compare((Double)b.get("score"),(Double)a.get("score")));

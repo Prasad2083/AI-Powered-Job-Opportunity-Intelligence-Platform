@@ -35,8 +35,16 @@ public class ResumeService {
         if (userId == null) throw new IllegalArgumentException("Authenticated user required");
         String filename = file.getOriginalFilename();
         if (file.isEmpty() || file.getSize() > 10_000_000) throw new IllegalArgumentException("Invalid resume size");
-        if (filename == null || !(filename.toLowerCase().endsWith(".pdf") || filename.toLowerCase().endsWith(".docx") || filename.toLowerCase().endsWith(".txt"))) throw new IllegalArgumentException("Only PDF, DOCX, and TXT are supported");
-        String text = extractText(file.getInputStream(), filename);
+        if (filename != null && filename.length()>255) throw new IllegalArgumentException("Resume filename is too long");
+        if (filename == null || !(filename.toLowerCase(java.util.Locale.ROOT).endsWith(".pdf") || filename.toLowerCase(java.util.Locale.ROOT).endsWith(".docx") || filename.toLowerCase(java.util.Locale.ROOT).endsWith(".txt"))) throw new IllegalArgumentException("Only PDF, DOCX, and TXT are supported");
+        byte[] original = file.getBytes();
+        String text;
+        try (InputStream input = new java.io.ByteArrayInputStream(original)) {
+            text = extractText(input, filename);
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Unable to read resume. Upload a valid, unencrypted PDF, DOCX, or UTF-8 TXT file.");
+        }
+        if (text.length()>100000 || text.indexOf(0)>=0) throw new IllegalArgumentException("Resume text must be at most 100000 characters and contain no binary data");
         if (text.isBlank()) throw new IllegalArgumentException("No readable text in resume");
         Resume r = new Resume();
         for (Resume existing : resumeRepository.findByUserIdOrderByCreatedAtDesc(userId)) {
@@ -46,19 +54,20 @@ public class ResumeService {
             }
         }
         r.setUserId(userId);
+        r.setOriginalFile(original);
         r.setFilePath("database://parsed-resumes/" + UUID.randomUUID());
         r.setFileSize(file.getSize());
         r.setFileName(filename == null ? "upload" : filename);
         r.setContentText(text);
         r.setIsPrimary(true);
         Resume saved = resumeRepository.save(r);
-        log.info("Saved resume id={} filename={}", saved.getId(), saved.getFileName());
+        log.info("Saved resume id={}", saved.getId());
         return saved;
     }
 
     private String extractText(InputStream in, String filename) throws Exception {
         if (filename == null) filename = "file";
-        String lower = filename.toLowerCase();
+        String lower = filename.toLowerCase(java.util.Locale.ROOT);
         if (lower.endsWith(".pdf")) {
             try (var document = Loader.loadPDF(in.readAllBytes())) {
                 return new PDFTextStripper().getText(document);
@@ -68,7 +77,7 @@ public class ResumeService {
                 return ex.getText();
             }
         } else { // fallback to text
-            try (BufferedReader r = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+            try (BufferedReader r = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8.newDecoder().onMalformedInput(java.nio.charset.CodingErrorAction.REPORT).onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT)))) {
                 return r.lines().collect(Collectors.joining("\n"));
             }
         }

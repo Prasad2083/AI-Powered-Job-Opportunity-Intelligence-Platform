@@ -39,6 +39,10 @@ public class Resume {
     @Column(name = "content_text", columnDefinition = "TEXT")
     private String contentText;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @Column(name = "original_file")
+    private byte[] originalFile;
+
     private String skills;
 
     @Column(name = "experience_years")

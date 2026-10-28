@@ -14,6 +14,7 @@ public class User {
     private String username;
 
     @Column(name = "password_hash", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private String password; // BCrypt encoded
 
     private String email;
@@ -26,6 +27,17 @@ public class User {
     private boolean enabled = true;
     @Column(name = "created_at")
     private Instant createdAt = Instant.now();
+
+    @Column(name="target_roles") private String targetRoles;
+    @Column(name="target_locations") private String targetLocations;
+    public String getTargetRoles() { return targetRoles; }
+    public void setTargetRoles(String value) { targetRoles=value; }
+    public String getTargetLocations() { return targetLocations; }
+    public void setTargetLocations(String value) { targetLocations=value; }
+
+    @Column(name="token_version", nullable=false) private long tokenVersion;
+    public long getTokenVersion() {return tokenVersion;}
+    public void setTokenVersion(long value) {tokenVersion=value;}
 
     public User() {}
 

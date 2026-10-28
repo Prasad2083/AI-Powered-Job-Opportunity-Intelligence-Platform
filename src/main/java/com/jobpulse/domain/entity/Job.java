@@ -36,6 +36,12 @@ public class Job {
     @Column(name = "source_job_id", nullable = false)
     private String sourceJobId;
 
+    @Column(name = "owner_user_id")
+    private Long ownerUserId;
+
+    @Column(name="last_seen_at")
+    private LocalDateTime lastSeenAt;
+
     @Column(nullable = false)
     private String title;
 

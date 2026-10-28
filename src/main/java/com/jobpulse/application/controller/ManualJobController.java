@@ -22,8 +22,9 @@ import java.util.UUID;
 public class ManualJobController {
     private final JobRepository jobs;
     private final JobSourceRepository sources;
-    public ManualJobController(JobRepository jobs, JobSourceRepository sources) {
-        this.jobs=jobs; this.sources=sources;
+    private final com.jobpulse.domain.repository.UserRepository users;
+    public ManualJobController(JobRepository jobs, JobSourceRepository sources, com.jobpulse.domain.repository.UserRepository users) {
+        this.jobs=jobs; this.sources=sources; this.users=users;
     }
     public record ManualJobRequest(
         @NotBlank @Size(max=255) String title,
@@ -34,13 +35,13 @@ public class ManualJobController {
     ) {}
     @PostMapping
     @Transactional
-    public ResponseEntity<Map<String,Object>> create(@Valid @RequestBody ManualJobRequest input) {
+    public ResponseEntity<Map<String,Object>> create(@Valid @RequestBody ManualJobRequest input, org.springframework.security.core.Authentication auth) {
         String url=input.applyUrl()==null?"":input.applyUrl().trim();
         if (!url.isBlank() && !url.matches("https://[^\\s]+"))
             return ResponseEntity.badRequest().body(Map.of("error","Apply URL must use HTTPS"));
         JobSource source=sources.findByName("MANUAL")
             .orElseGet(()->sources.save(JobSource.builder().name("MANUAL").isEnabled(true).build()));
-        Job job=Job.builder().source(source).sourceJobId("manual-"+UUID.randomUUID())
+        Job job=Job.builder().ownerUserId(users.findByUsername(auth.getName()).orElseThrow().getId()).source(source).sourceJobId("manual-"+UUID.randomUUID())
             .title(input.title().trim()).companyName(input.company().trim())
             .jobDescription(input.description().trim()).location(input.location())
             .applyUrl(url.isBlank()?null:url).postedDate(LocalDateTime.now())

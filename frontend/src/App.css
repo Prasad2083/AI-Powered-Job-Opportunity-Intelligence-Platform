@@ -311,3 +311,24 @@ body {
   }
 }
 
+
+.page p { margin: .75rem 0; line-height: 1.55; }
+.page label { display: block; margin: .75rem 0; line-height: 1.5; }
+.page input:not([type="checkbox"]):not([type="file"]),
+.page textarea, .page select {
+  max-width: 100%; padding: .65rem; border: 1px solid #bdc3c7;
+  border-radius: 4px; font: inherit;
+}
+.page textarea { width: 100%; }
+.page button { cursor: pointer; margin: .25rem; padding: .55rem .8rem; }
+button:disabled { cursor: wait; opacity: .6; }
+button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 3px solid #667eea; outline-offset: 2px;
+}
+[role="alert"] { padding: .75rem; background: #fff1f0; color: #8a2020; border-radius: 4px; }
+[role="status"] { padding: .75rem; background: #eef7ff; border-radius: 4px; }
+.resume-list li { flex-wrap: wrap; gap: .5rem; }
+.page .auth-card { max-width: 760px; box-shadow: 0 2px 8px #0001; }
+details { margin: .75rem 0; } summary { cursor: pointer; font-weight: 600; }
+.page { overflow-x: auto; }
+@media (max-width: 768px) { .page { padding: 1rem; } .nav-links { justify-content: center; gap: .25rem; } }

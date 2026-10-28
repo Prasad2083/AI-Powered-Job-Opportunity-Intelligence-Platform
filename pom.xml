@@ -15,7 +15,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.0</version>
+        <version>3.5.16</version>
         <relativePath/>
     </parent>
 
@@ -25,7 +25,13 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.version>21</java.version>
-        <openapi.version>2.1.0</openapi.version>
+        <!-- Patch overrides pending the next Spring Boot 3.x BOM refresh. -->
+        <tomcat.version>10.1.61</tomcat.version>
+        <postgresql.version>42.7.14</postgresql.version>
+        <jackson-bom.version>2.21.8</jackson-bom.version>
+        <log4j2.version>2.26.1</log4j2.version>
+        <commons-lang3.version>3.21.0</commons-lang3.version>
+        <openapi.version>2.8.17</openapi.version>
     </properties>
 
     <dependencies>
@@ -37,10 +43,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-rest</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -60,6 +62,11 @@
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
 
         <!-- JWT & Security -->
@@ -88,22 +95,17 @@
             <version>${openapi.version}</version>
         </dependency>
 
-        <!-- HTTP Client -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-webflux</artifactId>
-        </dependency>
 
         <!-- PDF & Document Processing -->
         <dependency>
             <groupId>org.apache.pdfbox</groupId>
             <artifactId>pdfbox</artifactId>
-            <version>3.0.1</version>
+            <version>3.0.8</version>
         </dependency>
         <dependency>
             <groupId>org.apache.poi</groupId>
             <artifactId>poi-ooxml</artifactId>
-            <version>5.2.4</version>
+            <version>5.5.1</version>
         </dependency>
 
         <!-- JSON & XML Processing -->
@@ -131,7 +133,7 @@
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-            <version>2.15.1</version>
+            <version>2.22.0</version>
         </dependency>
 
         <!-- Lombok for reducing boilerplate -->
@@ -140,7 +142,6 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.30</version>
             <scope>provided</scope>
         </dependency>
 
