@@ -42,7 +42,7 @@ public class Resume {
     private String skills;
 
     @Column(name = "experience_years")
-    private Double experienceYears;
+    private java.math.BigDecimal experienceYears;
 
     private String certifications;
 
