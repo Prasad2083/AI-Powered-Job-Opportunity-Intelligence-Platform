@@ -63,6 +63,7 @@ function AuthPage({ setToken, setUser }) {
     try {
       const endpoint = isLogin ? '/auth/login' : '/auth/register';
       const response = await axios.post(`${API_BASE}${endpoint}`, formData);
+      if (!isLogin && !response.data.token) { setIsLogin(true); alert('Account created. Please log in.'); return; }
       if (response.data.token) {
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', response.data.username);
