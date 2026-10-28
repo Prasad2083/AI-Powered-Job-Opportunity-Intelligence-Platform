@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 import org.springframework.security.core.Authentication;
 import com.jobpulse.domain.repository.UserRepository;
 import org.springframework.http.HttpStatus;
@@ -27,21 +28,25 @@ public class ResumeController {
     }
 
     @PostMapping(value = "/upload")
-    public ResponseEntity<Resume> upload(@RequestParam("file") MultipartFile file,
+    public ResponseEntity<Map<String,Object>> upload(@RequestParam("file") MultipartFile file,
                                          @RequestParam(value = "userId", required = false) Long userId, Authentication authentication) throws Exception {
         Long ownId = users.findByUsername(authentication.getName()).orElseThrow().getId();
         Resume r = resumeService.storeResume(file, ownId);
-        return ResponseEntity.ok(r);
+        return ResponseEntity.ok(summary(r));
     }
 
     @GetMapping
-    public ResponseEntity<List<Resume>> list(Authentication authentication) {
-        return ResponseEntity.ok(resumeRepository.findByUserIdOrderByCreatedAtDesc(users.findByUsername(authentication.getName()).orElseThrow().getId()));
+    public ResponseEntity<List<Map<String,Object>>> list(Authentication authentication) {
+        return ResponseEntity.ok(resumeRepository.findByUserIdOrderByCreatedAtDesc(users.findByUsername(authentication.getName()).orElseThrow().getId()).stream().map(this::summary).toList());
     }
 
     @GetMapping("/active")
-    public ResponseEntity<Resume> active(Authentication authentication) {
-        return ResponseEntity.of(resumeRepository.findFirstByUserIdAndIsPrimaryTrue(users.findByUsername(authentication.getName()).orElseThrow().getId()));
+    public ResponseEntity<Map<String,Object>> active(Authentication authentication) {
+        return ResponseEntity.of(resumeRepository.findFirstByUserIdAndIsPrimaryTrue(users.findByUsername(authentication.getName()).orElseThrow().getId()).map(this::summary));
+    }
+    private Map<String,Object> summary(Resume resume) {
+        return Map.of("id",resume.getId(), "filename",resume.getFileName(),"active",Boolean.TRUE.equals(resume.getIsPrimary()));
     }
 }
+
 
