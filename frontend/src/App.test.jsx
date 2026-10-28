@@ -1,0 +1,20 @@
+import React from 'react';
+import {it, expect, vi, afterEach} from 'vitest';
+import {render, screen, cleanup} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import axios from 'axios';
+import App from './App';
+vi.mock('axios',()=>({default:{post:vi.fn(),get:vi.fn(),interceptors:{response:{use:vi.fn(),eject:vi.fn()}}}}));
+afterEach(()=>{cleanup();localStorage.clear();vi.clearAllMocks();});
+it('switches to registration and returns to login after successful registration',async()=>{
+  axios.post.mockResolvedValue({data:{id:1,username:'alice'}});
+  vi.spyOn(window,'alert').mockImplementation(()=>{});
+  const user=userEvent.setup();render(<App/>);
+  await user.click(screen.getByRole('button',{name:'Register'}));
+  await user.type(screen.getByPlaceholderText('Username'),'alice');
+  await user.type(screen.getByPlaceholderText('Password'),'test-password-123');
+  await user.type(screen.getByPlaceholderText('Email'),'alice@example.com');
+  await user.click(screen.getByRole('button',{name:'Register'}));
+  expect(await screen.findByRole('heading',{name:'Login'})).toBeTruthy();
+  expect(localStorage.getItem('token')).toBeNull();
+});

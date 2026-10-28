@@ -1,3 +1,5 @@
+> Historical design/status document. For current behavior and verified acceptance, use [README](README.md), [implementation checklist](docs/IMPLEMENTATION_CHECKLIST.md), and [verification](docs/VERIFICATION.md). Earlier completion claims and startup instructions below are not release evidence.
+
 # ✅ PHASES 3-7 COMPLETE - FINAL SUMMARY
 
 **Completion Date**: June 27, 2026  

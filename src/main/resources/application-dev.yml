@@ -1,18 +1,13 @@
+# Development uses the same environment-provided database and immutable Flyway
+# migrations as the normal application. Never recreate an existing database.
 spring:
   jpa:
     hibernate:
-      ddl-auto: create-drop
-    show-sql: true
-  datasource:
-    url: jdbc:postgresql://localhost:5432/jobpulse_dev
-    username: postgres
-    password: postgres
-
+      ddl-auto: validate
+    show-sql: false
 logging:
   level:
     root: INFO
-    com.jobpulse: DEBUG
-    org.springframework.web: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
-
+    com.jobpulse: INFO
+    org.springframework.web: INFO
+    org.hibernate: WARN

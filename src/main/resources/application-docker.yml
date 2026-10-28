@@ -12,3 +12,6 @@ logging:
     root: INFO
     com.jobpulse: INFO
 
+
+server:
+  address: 0.0.0.0

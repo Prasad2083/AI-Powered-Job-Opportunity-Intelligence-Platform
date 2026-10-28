@@ -51,7 +51,7 @@ public final class TextMatcher {
 
     private static String[] tokenize(String text) {
         // Split on non-letter/digit characters and keep words
-        return text.replaceAll("[^\\p{L}\\p{N}]+", " ").trim().split("\\\\s+");
+        return text.replaceAll("[^\\p{L}\\p{N}]+", " ").trim().split("\\s+");
     }
 }
 

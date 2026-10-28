@@ -1,0 +1,56 @@
+services:
+  - type: web
+    name: jobpulse-api
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: DB_HOST
+        fromDatabase:
+          name: jobpulse-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: jobpulse-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: jobpulse-db
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: jobpulse-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: jobpulse-db
+          property: password
+      - key: JWT_SECRET
+        generateValue: true
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: JOBPULSE_FRONTEND_ORIGIN
+        sync: false
+      - key: JOBPULSE_FEEDS_GREENHOUSE_BOARDS
+        sync: false
+      - key: JOBPULSE_FEEDS_LEVER_SITES
+        sync: false
+      - key: JOB_INGESTION_ENABLED
+        value: "true"
+      - key: SPRING_PROFILES_ACTIVE
+        value: docker
+databases:
+  - name: jobpulse-db
+    plan: basic-256mb
+    databaseName: jobpulse
+    user: jobpulse
+
+  - type: web
+    name: jobpulse-frontend
+    runtime: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: ./frontend/dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false
