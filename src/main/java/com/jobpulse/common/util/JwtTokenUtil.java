@@ -59,7 +59,7 @@ public class JwtTokenUtil {
      * Get role from token
      */
     public String getRoleFromToken(String token) {
-        return Jwts.parser().verifyWith(getSigningKey())
+        return Jwts.parser().verifyWith(getSigningKey()).build()
                 .parseSignedClaims(token)
                 .getPayload()
                 .get("role", String.class);
@@ -69,7 +69,7 @@ public class JwtTokenUtil {
      * Get username from token
      */
     public String getUsernameFromToken(String token) {
-        return Jwts.parser().verifyWith(getSigningKey())
+        return Jwts.parser().verifyWith(getSigningKey()).build()
                 .parseSignedClaims(token)
                 .getPayload()
                 .getSubject();
@@ -80,7 +80,7 @@ public class JwtTokenUtil {
      */
     public boolean validateToken(String token) {
         try {
-            Jwts.parser().verifyWith(getSigningKey())
+            Jwts.parser().verifyWith(getSigningKey()).build()
                     .parseSignedClaims(token);
             return true;
         } catch (MalformedJwtException | ExpiredJwtException | UnsupportedJwtException | IllegalArgumentException e) {
@@ -93,7 +93,7 @@ public class JwtTokenUtil {
      */
     public boolean isTokenExpired(String token) {
         try {
-            Claims claims = Jwts.parser().verifyWith(getSigningKey())
+            Claims claims = Jwts.parser().verifyWith(getSigningKey()).build()
                     .parseSignedClaims(token)
                     .getPayload();
             return claims.getExpiration().before(new Date());
