@@ -4,7 +4,7 @@ import axios from 'axios';
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('login');
+  const [currentPage, setCurrentPage] = useState('jobs');
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [user, setUser] = useState(localStorage.getItem('user'));
 
@@ -161,7 +161,7 @@ function JobsPage({ token }) {
       await axios.post(`${API_BASE}/jobs/autoapply`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      alert('Auto-apply triggered!');
+      alert('Application submission is not available; review official job postings instead.');
       fetchJobs();
     } catch (error) {
       alert('Auto-apply failed: ' + error.message);
@@ -177,7 +177,7 @@ function JobsPage({ token }) {
       <h2>Jobs</h2>
       <div className="actions">
         <button onClick={triggerIngest} className="btn-primary">Ingest Jobs</button>
-        <button onClick={triggerApply} className="btn-success">Auto-Apply</button>
+
         <button onClick={fetchJobs} className="btn-secondary">Refresh</button>
       </div>
 
@@ -197,7 +197,7 @@ function JobsPage({ token }) {
             {jobs.map((job) => (
               <tr key={job.id}>
                 <td>{job.title}</td>
-                <td>{job.company}</td>
+                <td>{job.companyName}</td>
                 <td>{job.location}</td>
                 <td>{job.applied ? '✓' : '✗'}</td>
               </tr>
@@ -235,7 +235,7 @@ function ResumesPage({ token }) {
       await axios.post(`${API_BASE}/resumes/upload`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
+
         }
       });
       alert('Resume uploaded!');
@@ -343,8 +343,8 @@ function ApplicationsPage({ token }) {
           {applications.map((app) => (
             <tr key={app.id}>
               <td>{app.job?.title}</td>
-              <td className={`status-${app.status.toLowerCase()}`}>{app.status}</td>
-              <td>{new Date(app.appliedAt).toLocaleDateString()}</td>
+              <td className={`status-${(app.applicationStatus || 'unknown').toLowerCase()}`}>{app.applicationStatus}</td>
+              <td>{new Date(app.appliedDate).toLocaleDateString()}</td>
               <td>{app.notes}</td>
             </tr>
           ))}
