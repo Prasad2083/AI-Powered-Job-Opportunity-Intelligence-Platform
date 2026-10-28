@@ -9,6 +9,22 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
+import com.jobpulse.common.util.JwtTokenUtil;
+import org.springframework.context.annotation.Bean;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.http.HttpHeaders;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -19,6 +35,29 @@ import java.util.List;
  */
 @Configuration
 public class SecurityConfig {
+    @Bean
+    SecurityFilterChain securityFilterChain(HttpSecurity http, JwtTokenUtil tokens) throws Exception {
+        OncePerRequestFilter bearer = new OncePerRequestFilter() {
+            @Override protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
+                String value = request.getHeader(HttpHeaders.AUTHORIZATION);
+                if (value != null && value.startsWith("Bearer ")) {
+                    String token = value.substring(7);
+                    if (tokens.validateToken(token)) {
+                        String name = tokens.getUsernameFromToken(token);
+                        String role = tokens.getRoleFromToken(token);
+                        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(name, null, List.of(new SimpleGrantedAuthority("ROLE_" + role))));
+                    }
+                }
+                chain.doFilter(request, response);
+            }
+        };
+        return http.csrf(csrf -> csrf.disable())
+            .cors(cors -> {})
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth.requestMatchers("/auth/**", "/health").permitAll().anyRequest().authenticated())
+            .addFilterBefore(bearer, UsernamePasswordAuthenticationFilter.class).build();
+    }
+
 
     /**
      * Configure CORS settings for the application.
