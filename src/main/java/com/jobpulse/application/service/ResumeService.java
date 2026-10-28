@@ -12,6 +12,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.springframework.transaction.annotation.Transactional;
+import java.util.UUID;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -28,14 +30,24 @@ public class ResumeService {
         this.resumeRepository = resumeRepository;
     }
 
+    @Transactional
     public Resume storeResume(MultipartFile file, Long userId) throws Exception {
+        if (userId == null) throw new IllegalArgumentException("Authenticated user required");
         String filename = file.getOriginalFilename();
         if (file.isEmpty() || file.getSize() > 10_000_000) throw new IllegalArgumentException("Invalid resume size");
         if (filename == null || !(filename.toLowerCase().endsWith(".pdf") || filename.toLowerCase().endsWith(".docx") || filename.toLowerCase().endsWith(".txt"))) throw new IllegalArgumentException("Only PDF, DOCX, and TXT are supported");
         String text = extractText(file.getInputStream(), filename);
         if (text.isBlank()) throw new IllegalArgumentException("No readable text in resume");
         Resume r = new Resume();
-        r.setUserId(userId == null ? 1L : userId);
+        for (Resume existing : resumeRepository.findByUserIdOrderByCreatedAtDesc(userId)) {
+            if (Boolean.TRUE.equals(existing.getIsPrimary())) {
+                existing.setIsPrimary(false);
+                resumeRepository.save(existing);
+            }
+        }
+        r.setUserId(userId);
+        r.setFilePath("database://parsed-resumes/" + UUID.randomUUID());
+        r.setFileSize(file.getSize());
         r.setFileName(filename == null ? "upload" : filename);
         r.setContentText(text);
         r.setIsPrimary(true);
