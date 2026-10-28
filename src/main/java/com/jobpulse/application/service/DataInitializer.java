@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
  * Seed initial data for local development: a sample active resume.
  */
 @Component
+@org.springframework.context.annotation.Profile("dev")
 public class DataInitializer {
 
     private final Logger log = LoggerFactory.getLogger(DataInitializer.class);
@@ -22,7 +23,7 @@ public class DataInitializer {
 
     @PostConstruct
     public void init() {
-        if (resumeRepository.findFirstByActiveTrue().isEmpty()) {
+        if (resumeRepository.findFirstByIsPrimaryTrue().isEmpty()) {
             Resume r = new Resume();
             r.setUserId(1L);
             r.setFileName("default_resume.txt");
