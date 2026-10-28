@@ -10,6 +10,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.text.PDFTextStripper;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -28,7 +30,10 @@ public class ResumeService {
 
     public Resume storeResume(MultipartFile file, Long userId) throws Exception {
         String filename = file.getOriginalFilename();
+        if (file.isEmpty() || file.getSize() > 10_000_000) throw new IllegalArgumentException("Invalid resume size");
+        if (filename == null || !(filename.toLowerCase().endsWith(".pdf") || filename.toLowerCase().endsWith(".docx") || filename.toLowerCase().endsWith(".txt"))) throw new IllegalArgumentException("Only PDF, DOCX, and TXT are supported");
         String text = extractText(file.getInputStream(), filename);
+        if (text.isBlank()) throw new IllegalArgumentException("No readable text in resume");
         Resume r = new Resume();
         r.setUserId(userId == null ? 1L : userId);
         r.setFileName(filename == null ? "upload" : filename);
@@ -43,17 +48,9 @@ public class ResumeService {
         if (filename == null) filename = "file";
         String lower = filename.toLowerCase();
         if (lower.endsWith(".pdf")) {
-            // Lightweight heuristic: extract readable text segments from binary PDF stream.
-            // This is not as accurate as PDFBox but avoids compatibility issues in build.
-            byte[] bytes = in.readAllBytes();
-            String raw = new String(bytes, StandardCharsets.ISO_8859_1);
-            // extract runs of letters/numbers as a crude proxy for text
-            java.util.regex.Matcher m = java.util.regex.Pattern.compile("[\\p{L}\\p{N}]{3,}").matcher(raw);
-            StringBuilder sb = new StringBuilder();
-            while (m.find()) {
-                sb.append(m.group()).append(' ');
+            try (var document = Loader.loadPDF(in.readAllBytes())) {
+                return new PDFTextStripper().getText(document);
             }
-            return sb.toString();
         } else if (lower.endsWith(".docx")) {
             try (XWPFDocument doc = new XWPFDocument(in); XWPFWordExtractor ex = new XWPFWordExtractor(doc)) {
                 return ex.getText();
