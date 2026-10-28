@@ -26,8 +26,12 @@ public class JobController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Job>> listJobs() {
-        return ResponseEntity.ok(jobRepository.findAll());
+    public ResponseEntity<List<java.util.Map<String,Object>>> listJobs() {
+        return ResponseEntity.ok(jobRepository.findAll().stream().map(job -> {
+            java.util.Map<String,Object> item = new java.util.LinkedHashMap<>();
+            item.put("id", job.getId()); item.put("title",job.getTitle()); item.put("companyName",job.getCompanyName()); item.put("location",job.getLocation()); item.put("applied",Boolean.TRUE.equals(job.getApplied())); item.put("applyUrl",job.getApplyUrl());
+            return item;
+        }).toList());
     }
 
     @PostMapping("/ingest")
