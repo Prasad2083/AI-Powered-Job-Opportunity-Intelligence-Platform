@@ -13,14 +13,18 @@ public class User {
     @Column(unique = true, nullable = false)
     private String username;
 
-    @Column(nullable = false)
+    @Column(name = "password_hash", nullable = false)
     private String password; // BCrypt encoded
 
     private String email;
+    @Transient
     private String fullName;
+    @Transient
     private String role; // USER, ADMIN, WORKER
 
+    @Column(name = "is_active")
     private boolean enabled = true;
+    @Column(name = "created_at")
     private Instant createdAt = Instant.now();
 
     public User() {}
