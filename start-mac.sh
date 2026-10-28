@@ -47,23 +47,24 @@ echo "$!" > .local-logs/backend.pid
   nohup npm run dev -- --host 127.0.0.1 > ../.local-logs/frontend.log 2>&1 < /dev/null &
   echo "$!" > ../.local-logs/frontend.pid
 )
-echo "Waiting for the browser interface..."
+echo "Waiting for frontend and backend..."
 for i in $(seq 1 90); do
-  if curl -fsS http://127.0.0.1:3000/ >/dev/null; then
-    if ! curl -fsS http://127.0.0.1:8080/api/v3/api-docs >/dev/null; then
-      echo "Frontend is running, but backend is not ready; check .local-logs/backend.log" >&2
-      exit 1
+  if ! kill -0 "$(cat .local-logs/backend.pid)" 2>/dev/null; then
+    echo "Backend process stopped; see .local-logs/backend.log" >&2
+    exit 1
+  fi
+  if curl -fsS http://127.0.0.1:3000/ >/dev/null 2>&1; then
+    # A missing public API route should return 404, while security-filtered requests return 401/403.
+    # Test a public auth endpoint, not the intentionally protected Swagger docs.
+    status="$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' --data '{}' http://127.0.0.1:8080/api/auth/login || true)"
+    if [[ "$status" == "400" || "$status" == "422" ]]; then
+      open http://localhost:3000
+      echo "JobPulse opened: http://localhost:3000"
+      echo "Backend logs: .local-logs/backend.log"
+      exit 0
     fi
-    if ! kill -0 "$(cat .local-logs/backend.pid)" 2>/dev/null; then
-      echo "Backend stopped unexpectedly; check .local-logs/backend.log" >&2
-      exit 1
-    fi
-    open http://localhost:3000
-    echo "JobPulse opened: http://localhost:3000"
-    echo "Backend logs: .local-logs/backend.log"
-    exit 0
   fi
   sleep 2
 done
-echo "Frontend did not become ready. Check .local-logs/frontend.log and .local-logs/backend.log" >&2
+echo "Startup not verified. Inspect .local-logs/backend.log and .local-logs/frontend.log" >&2
 exit 1
