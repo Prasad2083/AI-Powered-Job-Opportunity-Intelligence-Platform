@@ -130,16 +130,18 @@ function AuthPage({ setToken, setUser }) {
 function JobsPage({ token }) {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [filter,setFilter] = useState('');
+  const [error,setError] = useState('');
 
   const fetchJobs = async () => {
-    setLoading(true);
+    setLoading(true); setError('');
     try {
       const response = await axios.get(`${API_BASE}/jobs`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setJobs(response.data);
     } catch (error) {
-      console.error('Failed to fetch jobs:', error);
+      setError(error.response?.data?.error || 'Unable to load jobs. Log out and sign back in if your login expired.');
     } finally {
       setLoading(false);
     }
@@ -150,10 +152,10 @@ function JobsPage({ token }) {
       await axios.post(`${API_BASE}/jobs/ingest`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      alert('Ingestion triggered!');
+      alert('Job search finished. If the list stays empty, employer feeds are not yet configured.');
       fetchJobs();
     } catch (error) {
-      alert('Ingestion failed: ' + error.message);
+      setError('Job search failed: ' + (error.response?.data?.error || error.message));
     }
   };
 
@@ -181,6 +183,9 @@ function JobsPage({ token }) {
 
         <button onClick={fetchJobs} className="btn-secondary">Refresh</button>
       </div>
+      <p>Find jobs from configured public employer feeds. An empty list means no jobs were returned or configured.</p>
+      <input aria-label="Filter jobs" placeholder="Filter title, company or location" value={filter} onChange={e=>setFilter(e.target.value)} style={{width:'100%',maxWidth:420,padding:10,marginBottom:12}} />
+      {error && <p role="alert">{error}</p>}
 
       {loading ? (
         <p>Loading...</p>
@@ -195,7 +200,7 @@ function JobsPage({ token }) {
             </tr>
           </thead>
           <tbody>
-            {jobs.map((job) => (
+            {jobs.filter(job=>[job.title,job.companyName,job.location].some(value=>String(value||'').toLowerCase().includes(filter.toLowerCase()))).map((job) => (
               <tr key={job.id}>
                 <td>{job.title}</td>
                 <td>{job.companyName}</td>
@@ -213,6 +218,7 @@ function JobsPage({ token }) {
 function ResumesPage({ token }) {
   const [resumes, setResumes] = useState([]);
   const [file, setFile] = useState(null);
+  const [error,setError] = useState('');
 
   const fetchResumes = async () => {
     try {
@@ -221,7 +227,7 @@ function ResumesPage({ token }) {
       });
       setResumes(response.data);
     } catch (error) {
-      console.error('Failed to fetch resumes:', error);
+      setError(error.response?.data?.error || 'Unable to load resumes. Please sign in again if your session has expired.');
     }
   };
 
@@ -243,7 +249,7 @@ function ResumesPage({ token }) {
       setFile(null);
       fetchResumes();
     } catch (error) {
-      alert('Upload failed: ' + error.message);
+      setError('Upload failed: ' + (error.response?.data?.error || error.message));
     }
   };
 
@@ -263,6 +269,7 @@ function ResumesPage({ token }) {
         <button type="submit" className="btn-primary">Upload Resume</button>
       </form>
 
+      {error && <p role="alert">{error}</p>}
       <h3>Your Resumes</h3>
       <ul className="resume-list">
         {resumes.map((resume) => (
@@ -278,6 +285,7 @@ function ResumesPage({ token }) {
 function MatchesPage({ token }) {
   const [matches,setMatches] = useState([]);
   const [draft,setDraft] = useState(null);
+  const [editedDraft,setEditedDraft] = useState('');
   const [error,setError] = useState('');
   const [loading,setLoading] = useState(false);
   const load = async () => {
@@ -288,7 +296,7 @@ function MatchesPage({ token }) {
   };
   const tailor = async (id) => {
     setLoading(true);setError('');
-    try { const result=await axios.post(`${API_BASE}/tailoring/${id}`,{}, {headers:{Authorization:`Bearer ${token}`}});setDraft(result.data);}
+    try { const result=await axios.post(`${API_BASE}/tailoring/${id}`,{}, {headers:{Authorization:`Bearer ${token}`}});setDraft(result.data);setEditedDraft(result.data.draft);}
     catch (e){setError(e.response?.data?.message || 'AI draft failed; check server configuration');}
     finally {setLoading(false);}
   };
@@ -305,8 +313,10 @@ function MatchesPage({ token }) {
     </div>)}
     {draft && <section><h2>Review draft for job #{draft.jobId}</h2>
       <p>This draft has not been applied or submitted. Verify all claims before using it.</p>
-      <textarea readOnly value={draft.draft} rows={20} style={{width:'100%'}} />
-      <button onClick={()=>navigator.clipboard.writeText(draft.draft)}>Copy draft</button>
+      <textarea aria-label="Edit tailored resume" value={editedDraft} onChange={e=>setEditedDraft(e.target.value)} rows={20} style={{width:'100%'}} />
+      <div className="actions"><button onClick={()=>navigator.clipboard.writeText(editedDraft)}>Copy edited draft</button>
+      <button onClick={()=>{const blob=new Blob([editedDraft],{type:'text/plain;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`jobpulse-tailored-${draft.jobId}.txt`;a.click();URL.revokeObjectURL(url);}}>Download edited draft</button></div>
+      <p>Editing here only changes this local draft. Save it using Download; no application is submitted.</p>
     </section>}
   </div>
 }
