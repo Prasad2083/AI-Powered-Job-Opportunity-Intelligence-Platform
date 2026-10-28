@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:8080/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('login');
@@ -59,7 +59,7 @@ function AuthPage({ setToken, setUser }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
+      const endpoint = isLogin ? '/auth/login' : '/auth/register';
       const response = await axios.post(`${API_BASE}${endpoint}`, formData);
       if (response.data.token) {
         localStorage.setItem('token', response.data.token);
