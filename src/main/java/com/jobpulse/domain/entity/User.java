@@ -17,9 +17,9 @@ public class User {
     private String password; // BCrypt encoded
 
     private String email;
-    @Transient
+    @Column(name = "full_name")
     private String fullName;
-    @Transient
+    @Column(name = "role")
     private String role; // USER, ADMIN, WORKER
 
     @Column(name = "is_active")
