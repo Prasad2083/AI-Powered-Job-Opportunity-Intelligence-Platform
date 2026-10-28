@@ -1,6 +1,7 @@
 package com.jobpulse.config;
 
 import org.springframework.context.annotation.Bean;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -65,13 +66,14 @@ public class SecurityConfig {
      * Allows the frontend React application to communicate with the backend API.
      */
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
+    public CorsConfigurationSource corsConfigurationSource(@Value("${jobpulse.frontend.origin:http://localhost:5173}") String frontendOrigin) {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList(
             "http://localhost:3000",  // React dev server
             "http://localhost:5173",  // Vite dev server
             "https://jobpulse.com",
-            "https://www.jobpulse.com"
+            "https://www.jobpulse.com",
+            frontendOrigin
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
