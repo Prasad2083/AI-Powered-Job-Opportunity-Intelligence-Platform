@@ -29,7 +29,7 @@ public class ResumeController {
 
     @PostMapping(value = "/upload")
     public ResponseEntity<Map<String,Object>> upload(@RequestParam("file") MultipartFile file,
-                                         @RequestParam(value = "userId", required = false) Long userId, Authentication authentication) throws Exception {
+                                         Authentication authentication) throws Exception {
         Long ownId = users.findByUsername(authentication.getName()).orElseThrow().getId();
         Resume r = resumeService.storeResume(file, ownId);
         return ResponseEntity.ok(summary(r));
@@ -44,6 +44,26 @@ public class ResumeController {
     public ResponseEntity<Map<String,Object>> active(Authentication authentication) {
         return ResponseEntity.of(resumeRepository.findFirstByUserIdAndIsPrimaryTrue(users.findByUsername(authentication.getName()).orElseThrow().getId()).map(this::summary));
     }
+    @GetMapping("/{id}/text")
+    public ResponseEntity<Map<String,Object>> text(@PathVariable Long id, Authentication authentication) {
+        Long uid=users.findByUsername(authentication.getName()).orElseThrow().getId();
+        return ResponseEntity.of(resumeRepository.findById(id).filter(r -> r.getUserId().equals(uid))
+            .map(r -> Map.<String,Object>of("id",r.getId(),"text",r.getContentText()==null?"":r.getContentText())));
+    }
+
+    @PutMapping("/{id}/text")
+    public ResponseEntity<Map<String,Object>> updateText(@PathVariable Long id, @RequestBody Map<String,String> body, Authentication authentication) {
+        Long uid=users.findByUsername(authentication.getName()).orElseThrow().getId();
+        String text=body.getOrDefault("text","").trim();
+        if(text.isBlank() || text.length()>100000) return ResponseEntity.badRequest().build();
+        var resume=resumeRepository.findById(id).filter(r -> r.getUserId().equals(uid));
+        if(resume.isEmpty()) return ResponseEntity.notFound().build();
+        Resume r=resume.get();
+        r.setContentText(text);
+        resumeRepository.save(r);
+        return ResponseEntity.ok(summary(r));
+    }
+
     private Map<String,Object> summary(Resume resume) {
         return Map.of("id",resume.getId(), "filename",resume.getFileName(),"active",Boolean.TRUE.equals(resume.getIsPrimary()));
     }
