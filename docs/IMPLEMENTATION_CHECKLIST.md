@@ -23,7 +23,8 @@ Baseline: existing development branch `feature/production-workflow-20261027`, PR
 - [x] Preview/edit extracted text and select a primary resume; primary mutations serialize on the user row.
 - [x] Replacement by new upload retains prior originals and selects the new resume for matching.
 - [ ] Recover original bytes for historical uploads: impossible if the old application never retained them; re-upload required.
-- [ ] OCR for image-only PDFs (currently rejected with a useful error); formatted PDF/DOCX export is not implemented. Tailored TXT export is implemented.
+- [x] Saved tailored drafts export as Word/DOCX with readable paragraph formatting and Unicode content; ownership and text round-trip checks pass. TXT export remains available.
+- [ ] OCR for image-only PDFs (currently rejected with a useful error) and formatted PDF export.
 
 ## Jobs and matching
 
@@ -32,6 +33,7 @@ Baseline: existing development branch `feature/production-workflow-20261027`, PR
 - [x] Provider-scoped deduplication, updated listing content, last-seen timestamp and freshness display.
 - [x] Archive missing listings only after a complete successful feed refresh; retain previous listings on provider failures.
 - [x] Private manual descriptions; historical manual rows without provable ownership are hidden. Mock/manual entries are never labeled verified vacancies.
+- [x] Separate location and source-type filters, a recently-seen public-feed option and 20-row job paging; filters reset the page safely.
 - [x] Frontend filtering by title/company/location; configurable role/location ranking preferences with Toronto/GTA/remote Canada/hybrid defaults.
 - [x] Deterministic explained ranking: skill evidence, resume text, title preferences, seniority keywords, explicit experience-year mentions and location keywords.
 - [x] Missing evidence is labeled for review, not asserted as a genuine skill deficiency. Date ranges are not invented into experience totals.
@@ -45,13 +47,18 @@ Baseline: existing development branch `feature/production-workflow-20261027`, PR
 - [x] Source-constrained generation: model proposes line references; server validates them and emits only original excerpts plus the unchanged original text. Arbitrary model prose never becomes a professional claim.
 - [x] Editable drafts, explicit document approval, immutable saved versions and TXT downloads. Editing clears prior approval in the UI.
 - [x] Official application links and explicitly confirmed manual completion; `USER_REPORTED_*`, never provider-confirmed status.
-- [x] Duplicate manual record prevention under a per-user database lock; history and status updates.
+- [x] Duplicate manual record prevention under a per-user database lock; history, readable status labels, status filtering and editable follow-up notes.
+- [x] In-page manual completion requires a confirmation checkbox; it never claims provider confirmation.
 - [x] Automatic submission globally disabled (501); mock adapter cannot report successful submission.
 - [ ] Free-form AI paraphrasing with reliable factual validation. Current extractive mode intentionally does not claim to solve this.
 - [ ] Authorized submission integrations, provider receipts, per-application approved payloads, idempotent reconciliation and user-defined automated eligibility rules. Requires employer/provider authorization unavailable in this session.
 - [ ] Real Ollama/Qwen run on the user's Mac; protocol and failure behavior were tested with safe local mocks only.
 
 ## Frontend, launcher and delivery
+
+- [x] Signed-in workspace now shares the home-page palette, serif headings, brand, spacing and controls across all five sections; active navigation, mobile layouts, readable tables and meaningful empty states are tested.
+- [x] Upload/saving feedback and manual-completion confirmation appear within the workspace rather than browser alerts.
+- [x] Saved-version Word export is disabled after unsaved edits; text responses from an outdated backend are refused rather than renamed as DOCX files.
 
 - [x] Professional public home page with product overview, illustrative workflow, safeguards, signup/login actions and responsive layouts down to 320px.
 - [x] Direct/reloadable account links, browser back navigation, inline authentication validation and duplicate-request prevention.

@@ -110,6 +110,18 @@ class DatabaseStartupTest {
         var saved=mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/tailoring/documents").header("Authorization","Bearer "+alice).contentType("application/json").content(savedBody))
             .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk()).andReturn();
         long documentId=mapper.readTree(saved.getResponse().getContentAsString()).path("id").asLong();
+        var word = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/tailoring/documents/"+documentId+"/download?format=docx").header("Authorization","Bearer "+alice))
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk())
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().contentType("application/vnd.openxmlformats-officedocument.wordprocessingml.document")).andReturn();
+        try (var parsed = new org.apache.poi.xwpf.usermodel.XWPFDocument(new java.io.ByteArrayInputStream(word.getResponse().getContentAsByteArray()));
+             var extracted = new org.apache.poi.xwpf.extractor.XWPFWordExtractor(parsed)) {
+            org.junit.jupiter.api.Assertions.assertEquals("Java engineer", extracted.getText().trim());
+        }
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/tailoring/documents/"+documentId+"/download?format=docx").header("Authorization","Bearer "+bob))
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isNotFound());
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/tailoring/documents/"+documentId+"/download?format=pdf").header("Authorization","Bearer "+alice))
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isBadRequest());
+
         mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/tailoring/documents/"+documentId+"/download").header("Authorization","Bearer "+bob))
             .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isNotFound());
         mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/resumes/"+id+"/text").header("Authorization","Bearer "+alice))

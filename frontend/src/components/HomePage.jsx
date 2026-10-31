@@ -5,8 +5,8 @@ export function Arrow() {
   return <svg className="jp-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
-export function Brand({ href = '#', children }) {
-  return <a className="jp-brand" href={href} aria-label="JobPulse home">
+export function Brand({ href = '#', onClick, children }) {
+  return <a className="jp-brand" href={href} onClick={onClick} aria-label="JobPulse home">
     <span className="jp-brand-symbol" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M4 17h6l4-9 5 17 4-8h5" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
     <span>JobPulse<span className="jp-brand-period">.</span></span>{children}
   </a>;

@@ -14,12 +14,13 @@ import java.util.Map;
 @RequestMapping("/tailoring")
 public class TailoringController {
     private final ResumeTailoringService tailoring;
+    private final com.jobpulse.application.service.DocumentExportService exports;
     private final ResumeRepository resumes;
     private final JobRepository jobs;
     private final UserRepository users;
     private final com.jobpulse.domain.repository.TailoredDocumentRepository documents;
-    TailoringController(ResumeTailoringService tailoring, ResumeRepository resumes, JobRepository jobs, UserRepository users, com.jobpulse.domain.repository.TailoredDocumentRepository documents) {
-        this.tailoring=tailoring;this.resumes=resumes;this.jobs=jobs;this.users=users;this.documents=documents;
+    TailoringController(ResumeTailoringService tailoring, ResumeRepository resumes, JobRepository jobs, UserRepository users, com.jobpulse.domain.repository.TailoredDocumentRepository documents, com.jobpulse.application.service.DocumentExportService exports) {
+        this.tailoring=tailoring;this.resumes=resumes;this.jobs=jobs;this.users=users;this.documents=documents;this.exports=exports;
     }
     @PostMapping("/{jobId}")
     public Map<String,Object> preview(@PathVariable Long jobId, Authentication auth) {
@@ -53,11 +54,16 @@ public class TailoringController {
     }
 
     @GetMapping("/documents/{id}/download")
-    public org.springframework.http.ResponseEntity<String> download(@PathVariable Long id, Authentication auth) {
+    public org.springframework.http.ResponseEntity<byte[]> download(@PathVariable Long id, @RequestParam(defaultValue="txt") String format, Authentication auth) throws java.io.IOException {
         Long uid=users.findByUsername(auth.getName()).orElseThrow().getId();
         var document=documents.findByIdAndUserId(id,uid)
             .orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Document missing"));
-        return org.springframework.http.ResponseEntity.ok().contentType(org.springframework.http.MediaType.parseMediaType("text/plain;charset=UTF-8"))
-            .header("Content-Disposition","attachment; filename=jobpulse-tailored-"+id+".txt").body(document.getContent());
+        if (!format.equals("txt") && !format.equals("docx"))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Supported export formats are txt and docx");
+        byte[] bytes = format.equals("docx") ? exports.docx(document.getContent()) : document.getContent().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        var type = org.springframework.http.MediaType.parseMediaType(format.equals("docx")
+            ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document" : "text/plain;charset=UTF-8");
+        return org.springframework.http.ResponseEntity.ok().contentType(type)
+            .header("Content-Disposition","attachment; filename=jobpulse-tailored-"+id+"."+format).body(bytes);
     }
 }

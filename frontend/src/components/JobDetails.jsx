@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { API_BASE, apiError } from '../lib/api';
+import { Arrow } from './HomePage';
 
 // Provider descriptions are display-only text; no provider HTML enters the DOM.
 export function plainDescription(value = '') {
@@ -41,7 +42,7 @@ export default function JobDetails({ jobId, token, onClose }) {
       <dl><div><dt>Source</dt><dd>{details.source}</dd></div><div><dt>{details.postingStatus === 'PUBLIC_FEED_RECHECK_BEFORE_APPLYING' ? 'Publication date' : 'Recorded date'}</dt><dd>{details.postedDate ? new Date(details.postedDate).toLocaleDateString() : 'Not supplied'}</dd></div><div><dt>Last seen in a feed</dt><dd>{details.lastSeenAt ? new Date(details.lastSeenAt).toLocaleString() : 'Not verified'}</dd></div></dl>
       {details.stale && <p>Freshness needs review. Confirm the current details on the employer’s website.</p>}
       <div className="job-detail-description">{plainDescription(details.description) || 'No description supplied.'}</div>
-      {/^https:\/\//i.test(details.applyUrl || '') && <a href={details.applyUrl} target="_blank" rel="noopener noreferrer">Open official application <span aria-hidden="true">↗</span></a>}
+      {/^https:\/\//i.test(details.applyUrl || '') && <a href={details.applyUrl} target="_blank" rel="noopener noreferrer">Open official application <Arrow /></a>}
     </>}
   </section>;
 }

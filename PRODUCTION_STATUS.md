@@ -2,7 +2,7 @@
 
 The existing project now builds and has validated local workflows using PostgreSQL 16, Java 21, React and mocked local Ollama protocol responses. See [verification](docs/VERIFICATION.md) for executed tests and their limits, and [implementation checklist](docs/IMPLEMENTATION_CHECKLIST.md) for acceptance status.
 
-Implemented: a professional public home page and account entry flow; private full job-description review; secure user-scoped workflows and revocable JWT sessions; PDF/DOCX/TXT resume management with original-byte preservation; configurable Greenhouse/Lever ingestion and freshness; explained deterministic matching; source-constrained Ollama drafts with edit/review/version saving; manual application history/status tracking; profile preferences; improved local launcher; meaningful CI and vulnerability scans.
+Implemented: a unified home/workspace visual system and saved Word/DOCX exports, paged job filtering and editable application notes; a professional public home page and account entry flow; private full job-description review; secure user-scoped workflows and revocable JWT sessions; PDF/DOCX/TXT resume management with original-byte preservation; configurable Greenhouse/Lever ingestion and freshness; explained deterministic matching; source-constrained Ollama drafts with edit/review/version saving; manual application history/status tracking; profile preferences; improved local launcher; meaningful CI and vulnerability scans.
 
 No OpenAI API key is required. No provider-confirmed submission capability is implemented. Real submissions stay disabled; manual completions are explicitly user-reported. Free-form factual AI rewriting and automated eligibility remain incomplete.
 
