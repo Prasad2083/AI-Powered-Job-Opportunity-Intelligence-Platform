@@ -13,17 +13,17 @@ git switch feature/production-workflow-20261027
 bash start-mac.sh
 ```
 
-Open **http://localhost:3000**. Backend: http://localhost:8080/api. The launcher installs no software, reuses PostgreSQL 16 and existing Ollama models, generates local secrets if `.env` is absent, and checks both services before reporting success. It downloads `qwen3:4b` only if that model is missing. Existing database volumes are retained.
+Open **http://localhost:3000** for the public home page. Choose **Sign up** or **Log in**; returning signed-in users go directly to their workspace. Direct account links: `http://localhost:3000/#signup` and `http://localhost:3000/#login`. Backend: http://localhost:8080/api. The launcher installs no software, reuses PostgreSQL 16 and existing Ollama models, generates local secrets if `.env` is absent, and checks both services before reporting success. It downloads `qwen3:4b` only if that model is missing. Existing database volumes are retained.
 
 If `.env` already exists, use a unique `DB_PASSWORD` and generate `JWT_SECRET` with `openssl rand -hex 64`. Changing a PostgreSQL password environment variable does not change credentials inside an existing database volume. Never delete the volume to fix a login problem.
 
-See [macOS setup and recovery](MAC_LOCAL_SETUP.md).
+After pulling backend changes, stop the existing backend before relaunching so the updated JAR is rebuilt; the launcher deliberately reuses an already running backend. See [macOS setup and recovery](MAC_LOCAL_SETUP.md).
 
 ## Workflow
 
-1. Register (password 12–72 characters, maximum 72 UTF-8 bytes) and log in.
+1. From the home page choose **Sign up**, create an account (password 12–72 characters, maximum 72 UTF-8 bytes), then log in.
 2. Upload a PDF, DOCX, or UTF-8 TXT resume. Preview/edit extracted text; the uploaded original remains downloadable and unchanged. Uploading a replacement retains older versions. Select which resume to use for matching.
-3. Choose **Find jobs**, or paste a private job description. Defaults include real Greenhouse boards `canonical,reddit,gitlab` and Lever sites `ataccama,caseware`. Listings may change or close; manual entries and mocks are explicitly unverified.
+3. Choose **Find jobs**, or paste a private job description. Select a job title, or **Read full job description** in Matches, to review the full description, provenance and freshness before preparing a draft. Defaults include real Greenhouse boards `canonical,reddit,gitlab` and Lever sites `ataccama,caseware`. Listings may change or close; manual entries and mocks are explicitly unverified.
 4. Set target roles and locations in **Profile & preferences**. Review matching scores and their evidence. Scores are ranking aids, not hiring probabilities or verified eligibility.
 5. Generate a tailored draft using local Ollama. The model selects original evidence lines; the server copies those lines verbatim and retains the full original. Edit supported wording, review every claim, and save a separate version. Download TXT documents.
 6. Complete applications on official employer sites. Explicitly confirm completion to record a **user-reported** application; this is never provider confirmation. Track interview, offer, rejection, or withdrawal statuses in history.

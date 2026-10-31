@@ -1,33 +1,45 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
-function apiError(error,fallback='Request failed') {
-  const data=error.response?.data;
-  if(data?.fieldErrors) {
-    const fields=Object.entries(data.fieldErrors).map(([name,message])=>`${name}: ${message}`);
-    if(fields.length) return fields.join('; ');
-  }
-  return data?.message||data?.error||fallback;
+import HomePage from './components/HomePage';
+import AuthPage from './components/AuthPage';
+import JobDetails from './components/JobDetails';
+import { API_BASE, apiError } from './lib/api';
+
+function publicViewFromHash() {
+  return window.location.hash === '#login' ? 'login' : window.location.hash === '#signup' ? 'signup' : 'home';
 }
 
 function App() {
   const [currentPage, setCurrentPage] = useState('jobs');
+  const [publicView, setPublicView] = useState(publicViewFromHash);
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [user, setUser] = useState(localStorage.getItem('user'));
 
-  const clearSession = () => {
+  useEffect(() => {
+    const onHashChange = () => setPublicView(publicViewFromHash());
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
+  useEffect(() => {
+    if (!token) document.getElementById('public-page-title')?.focus({ preventScroll: true });
+  }, [publicView, token]);
+
+  const clearSession = (destination = 'login') => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setToken(null);
     setUser(null);
-    setCurrentPage('login');
+    setCurrentPage('jobs');
+    setPublicView(destination);
+    window.location.hash = destination === 'home' ? '' : 'login';
   };
 
   const logout = async () => {
     try {await axios.post(`${API_BASE}/auth/logout`,{}, {headers:{Authorization:`Bearer ${token}`}});}
     catch(e) {window.alert("Local session cleared. Server logout could not be confirmed; existing tokens expire within the configured lifetime.");}
-    finally {clearSession();}
+    finally {clearSession('home');}
   };
 
   useEffect(() => {
@@ -39,7 +51,7 @@ function App() {
   },[token]);
 
   if (!token) {
-    return <AuthPage setToken={setToken} setUser={setUser} />;
+    return publicView === 'home' ? <HomePage /> : <AuthPage mode={publicView} setToken={setToken} setUser={setUser} />;
   }
 
   return (
@@ -73,87 +85,8 @@ function App() {
   );
 }
 
-function AuthPage({ setToken, setUser }) {
-  const [isLogin, setIsLogin] = useState(true);
-  const [formData, setFormData] = useState({
-    username: '',
-    password: '',
-    email: '',
-    fullName: ''
-  });
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const endpoint = isLogin ? '/auth/login' : '/auth/register';
-      const response = await axios.post(`${API_BASE}${endpoint}`, formData);
-      if (!isLogin && !response.data.token) { setIsLogin(true); alert('Account created. Please log in.'); return; }
-      if (response.data.token) {
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', response.data.username);
-        setToken(response.data.token);
-        setUser(response.data.username);
-      }
-    } catch (error) {
-      alert('Auth failed: ' + apiError(error,error.message));
-    }
-  };
-
-  return (
-    <div className="auth-page">
-      <div className="auth-card">
-        <h2>{isLogin ? 'Login' : 'Register'}</h2>
-        <form onSubmit={handleSubmit}>
-          <input
-            type="text"
-            placeholder="Username"
-            value={formData.username}
-            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-            required
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            minLength={isLogin?undefined:12}
-            maxLength={72}
-            value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            required
-          />
-          {!isLogin && (
-            <>
-              <input
-                type="email"
-                placeholder="Email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              />
-              <input
-                type="text"
-                placeholder="Full Name"
-                value={formData.fullName}
-                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-              />
-            </>
-          )}
-          <button type="submit">{isLogin ? 'Login' : 'Register'}</button>
-        </form>
-        <p>
-          {isLogin ? "Don't have an account? " : 'Already have an account? '}
-          <button
-            type="button"
-            onClick={() => setIsLogin(!isLogin)}
-            className="toggle-auth"
-          >
-            {isLogin ? 'Register' : 'Login'}
-          </button>
-        </p>
-      </div>
-    </div>
-  );
-}
-
 function JobsPage({ token }) {
+  const [selectedJob, setSelectedJob] = useState(null);
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filter,setFilter] = useState('');
@@ -240,6 +173,7 @@ function JobsPage({ token }) {
       <input aria-label="Filter jobs" placeholder="Filter title, company or location" value={filter} onChange={e=>setFilter(e.target.value)} style={{width:'100%',maxWidth:420,padding:10,marginBottom:12}} />
       {error && <p role="alert">{error}</p>}
 
+      {selectedJob && <JobDetails jobId={selectedJob} token={token} onClose={() => setSelectedJob(null)} />}
       {loading ? (
         <p>Loading...</p>
       ) : (
@@ -255,10 +189,10 @@ function JobsPage({ token }) {
           <tbody>
             {jobs.filter(job=>[job.title,job.companyName,job.location].some(value=>String(value||'').toLowerCase().includes(filter.toLowerCase()))).map((job) => (
               <tr key={job.id}>
-                <td>{job.title}</td>
+                <td><button type="button" className="job-detail-trigger" onClick={() => setSelectedJob(job.id)} aria-label={`Read job: ${job.title}`}>{job.title}</button></td>
                 <td>{job.companyName}</td>
                 <td>{job.location}</td>
-                <td>{job.postingStatus === 'MANUAL_UNVERIFIED' ? 'Manually entered — unverified' : job.postingStatus === 'MOCK_NOT_A_VACANCY' ? 'Mock — not a vacancy' : job.source} {job.applyUrl && <a href={job.applyUrl} target="_blank" rel="noopener noreferrer">Official application</a>} {job.stale && <span> · Freshness unverified</span>}</td>
+                <td>{job.postingStatus === 'MANUAL_UNVERIFIED' ? 'Manually entered — unverified' : job.postingStatus === 'MOCK_NOT_A_VACANCY' ? 'Mock — not a vacancy' : job.postingStatus === 'SOURCE_UNVERIFIED' ? 'Unverified source' : job.source} {job.applyUrl && <a href={job.applyUrl} target="_blank" rel="noopener noreferrer">Official application</a>} {job.stale && <span> · Freshness unverified</span>}</td>
               </tr>
             ))}
           </tbody>
@@ -362,6 +296,7 @@ function ResumesPage({ token }) {
 }
 
 function MatchesPage({ token }) {
+  const [selectedJob, setSelectedJob] = useState(null);
   const [matches,setMatches] = useState([]);
   const [draft,setDraft] = useState(null);
   const [editedDraft,setEditedDraft] = useState('');
@@ -396,9 +331,11 @@ function MatchesPage({ token }) {
     <button onClick={load} disabled={loading}>Refresh matches</button>
     {error && <p role="alert">{error}</p>}
     {notice && <p role="status">{notice}</p>}
+    {selectedJob && <JobDetails jobId={selectedJob} token={token} onClose={() => setSelectedJob(null)} />}
     {matches.map(m=><div key={m.jobId} className="auth-card" style={{margin:'12px 0'}}>
       <h3>{m.title} — {m.company}</h3><p>{m.score}% ranking score · {m.source}</p>
       <details><summary>Why this match?</summary><p>{m.explanation}</p><p>Skills evidenced: {(m.matchedSkills||[]).join(', ')||'None detected'}</p><p>Skills to review: {(m.skillsNotEvidenced||[]).join(', ')||'None detected'}</p><p>Location preference: {m.locationPreferenceMatched?'Matched':'Review required'}</p>{m.seniorityReviewRequired && <p>Seniority evidence needs review.</p>}<p>Explicit years mentioned: job {m.requiredYearsMentioned??'unspecified'} · resume {m.resumeYearsMentioned??'unspecified'} (not verified totals)</p>{m.experienceReviewRequired && <p>Experience requirements need review.</p>}</details>
+      <button type="button" onClick={() => setSelectedJob(m.jobId)} aria-label={`Read job: ${m.title}`}>Read full job description</button>
       <button onClick={()=>tailor(m.jobId)} disabled={loading}>Generate truthful tailored draft</button>
       {' '}
       <button onClick={async()=>{

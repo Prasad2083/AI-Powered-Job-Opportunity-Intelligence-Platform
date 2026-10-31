@@ -31,10 +31,35 @@ public class JobController {
     public ResponseEntity<List<java.util.Map<String,Object>>> listJobs(org.springframework.security.core.Authentication auth) {
         return ResponseEntity.ok(jobRepository.findVisible(users.findByUsername(auth.getName()).orElseThrow().getId()).stream().map(job -> {
             java.util.Map<String,Object> item = new java.util.LinkedHashMap<>();
-            item.put("lastSeenAt",job.getLastSeenAt()); item.put("postedDate",job.getPostedDate()); item.put("stale",job.getLastSeenAt()==null || job.getLastSeenAt().isBefore(java.time.LocalDateTime.now().minusDays(7)));
-            item.put("id", job.getId()); item.put("title",job.getTitle()); item.put("companyName",job.getCompanyName()); item.put("location",job.getLocation()); item.put("source", job.getSource().getName()); item.put("postingStatus", job.getSource().getName().equals("MANUAL") ? "MANUAL_UNVERIFIED" : job.getSource().getName().equals("MOCK") ? "MOCK_NOT_A_VACANCY" : "PUBLIC_FEED_RECHECK_BEFORE_APPLYING"); item.put("applyUrl",job.getApplyUrl());
+            item.put("lastSeenAt",job.getLastSeenAt()); item.put("postedDate",job.getPostedDate()); item.put("stale",stale(job));
+            item.put("id", job.getId()); item.put("title",job.getTitle()); item.put("companyName",job.getCompanyName()); item.put("location",job.getLocation()); item.put("source", job.getSource().getName()); item.put("postingStatus", postingStatus(job)); item.put("applyUrl",job.getApplyUrl());
             return item;
         }).toList());
+    }
+
+    public record JobDetails(Long id, String title, String companyName, String location,
+        String description, String source, String postingStatus, String applyUrl,
+        java.time.LocalDateTime postedDate, java.time.LocalDateTime lastSeenAt, boolean stale) {}
+
+    @GetMapping("/{id}")
+    public ResponseEntity<JobDetails> details(@PathVariable Long id, org.springframework.security.core.Authentication auth) {
+        Long uid = users.findByUsername(auth.getName()).orElseThrow().getId();
+        return ResponseEntity.of(jobRepository.findVisibleById(id, uid).map(job -> new JobDetails(
+            job.getId(), job.getTitle(), job.getCompanyName(), job.getLocation(), job.getJobDescription(),
+            job.getSource().getName(), postingStatus(job), job.getApplyUrl(), job.getPostedDate(),
+            job.getLastSeenAt(), stale(job))));
+    }
+
+    private static boolean stale(Job job) {
+        return job.getLastSeenAt() == null || job.getLastSeenAt().isBefore(java.time.LocalDateTime.now().minusDays(7));
+    }
+
+    private static String postingStatus(Job job) {
+        String source = job.getSource().getName();
+        if (source.equals("MANUAL")) return "MANUAL_UNVERIFIED";
+        if (source.equals("MOCK")) return "MOCK_NOT_A_VACANCY";
+        return job.getLastSeenAt() != null && (source.startsWith("GREENHOUSE:") || source.startsWith("LEVER:"))
+            ? "PUBLIC_FEED_RECHECK_BEFORE_APPLYING" : "SOURCE_UNVERIFIED";
     }
 
     @PostMapping("/ingest")

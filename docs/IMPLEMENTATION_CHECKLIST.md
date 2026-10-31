@@ -53,13 +53,19 @@ Baseline: existing development branch `feature/production-workflow-20261027`, PR
 
 ## Frontend, launcher and delivery
 
+- [x] Professional public home page with product overview, illustrative workflow, safeguards, signup/login actions and responsive layouts down to 320px.
+- [x] Direct/reloadable account links, browser back navigation, inline authentication validation and duplicate-request prevention.
+- [x] Logout returns to home; logging back in resets the workspace to Jobs instead of leaving a blank dashboard.
+- [x] Authenticated job-description detail view with ownership checks, safe plain-text provider content and explicit provenance/freshness limits.
+
 - [x] Login/registration, resumes, jobs, matches, draft review/version saving, history and profile/preferences controls.
 - [x] Validation/error messages, accessible status updates, basic responsive styling and original download.
 - [x] Launcher reuses installed tools, Docker Desktop, database images, model and unchanged frontend dependencies; generates secrets only if absent; verifies both services.
 - [x] Frontend component test, production build, mocked browser flow and real-backend/PostgreSQL browser workflow with only Ollama mocked.
 - [x] Real dependency scans: npm audit and OSV resolved Maven coordinates. Two version-specific Spring MVC advisories are reviewed as non-applicable, remain visible and expire for re-review.
 - [x] CI now runs builds, security/API/PostgreSQL/Flyway tests, frontend tests, browser tests and vulnerability scans; dependency listing alone is not called an audit.
-- [ ] Actual macOS/Docker Desktop/Apple Silicon startup acceptance; Linux syntax/build/browser checks do not establish this.
+- [x] User reports the application launches and works on their Mac.
+- [ ] Independent hardware-specific Docker Desktop/Apple Silicon and real-model acceptance; Linux checks and user-reported startup do not establish all native workflows.
 - [ ] Release approval and merge: keep draft until outstanding release gates and current CI are reviewed. No public deployment performed.
 
 Executed results and reproducible commands are in [VERIFICATION.md](VERIFICATION.md). Future features are not silently treated as finished.

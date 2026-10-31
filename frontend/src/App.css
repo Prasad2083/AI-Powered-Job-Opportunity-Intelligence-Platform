@@ -332,3 +332,13 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
 details { margin: .75rem 0; } summary { cursor: pointer; font-weight: 600; }
 .page { overflow-x: auto; }
 @media (max-width: 768px) { .page { padding: 1rem; } .nav-links { justify-content: center; gap: .25rem; } }
+
+.job-detail-panel { margin:20px 0;padding:24px;background:#f5f8f3;border:1px solid #d5dfd2;border-radius:8px; }
+.job-detail-heading { display:flex;align-items:center;justify-content:space-between;gap:16px; }
+.job-detail-heading h3 { margin:0; }.job-detail-heading h3:focus { outline:2px solid #667eea;outline-offset:4px; }
+.job-detail-panel h4 { font-size:20px;margin:16px 0 8px; }
+.job-detail-provenance { color:#546449;font-size:14px; }
+.job-detail-panel dl { display:flex;gap:24px;flex-wrap:wrap;margin:20px 0;font-size:12px; }
+.job-detail-panel dt { font-weight:600;margin-bottom:5px; }.job-detail-panel dd { color:#56664f; }
+.job-detail-description { white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.8;font-size:14px;max-height:550px;overflow-y:auto;margin:20px 0; }
+.page button.job-detail-trigger { color:#245b49;text-align:left;background:none;border:0;padding:0;margin:0;text-decoration:underline;text-underline-offset:3px;font:inherit; }

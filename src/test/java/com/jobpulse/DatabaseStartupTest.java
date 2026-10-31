@@ -96,6 +96,15 @@ class DatabaseStartupTest {
             .contentType("application/json").content(mapper.writeValueAsString(java.util.Map.of("title","Private opportunity","company","Example","description","Java Spring Boot backend engineer with testing experience"))))
             .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk()).andReturn();
         long jobId=mapper.readTree(manual.getResponse().getContentAsString()).path("id").asLong();
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/jobs/"+jobId).header("Authorization","Bearer "+alice))
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk())
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.description").value("Java Spring Boot backend engineer with testing experience"))
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.postingStatus").value("MANUAL_UNVERIFIED"));
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/jobs/"+jobId).header("Authorization","Bearer "+bob))
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isNotFound());
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/jobs/"+jobId))
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isUnauthorized());
+
         database.update("INSERT INTO jobs(source_id,source_job_id,title,company_name,job_description) SELECT id,'legacy-no-owner','Unowned legacy job','Historical','Not attributable to any user' FROM job_sources WHERE name='MANUAL'");
         String savedBody=mapper.writeValueAsString(java.util.Map.of("resumeId",id,"jobId",jobId,"content","Java engineer","approved",true));
         var saved=mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/tailoring/documents").header("Authorization","Bearer "+alice).contentType("application/json").content(savedBody))

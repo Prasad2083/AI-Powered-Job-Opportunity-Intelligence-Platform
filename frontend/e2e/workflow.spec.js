@@ -10,6 +10,7 @@ test('login, preview own resume, and log out with mocked API',async({page})=>{
     await route.fulfill({json:data});
   });
   await page.goto('/');
+  await page.getByRole('link',{name:'Log in',exact:true}).first().click();
   await page.getByPlaceholder('Username').fill('alice');
   await page.getByPlaceholder('Password').fill('test-password-123');
   await page.getByRole('button',{name:'Login',exact:true}).click();
@@ -19,6 +20,11 @@ test('login, preview own resume, and log out with mocked API',async({page})=>{
   await page.getByRole('button',{name:'Preview / edit text'}).click();
   await expect(page.getByRole('textbox',{name:'Resume text'})).toHaveValue('Senior Quality Engineer with Java and Selenium');
   await page.getByRole('button',{name:'Logout'}).click();
-  await expect(page.getByRole('heading',{name:'Login',exact:true})).toBeVisible();
-  expect(await page.evaluate(()=>localStorage.getItem('token'))).toBeNull();
+  await expect(page.getByRole('heading',{level:1})).toContainText('Your experience.');
+  await page.getByRole('link',{name:'Log in',exact:true}).first().click();
+  await page.getByPlaceholder('Username').fill('alice');
+  await page.getByPlaceholder('Password').fill('test-password-123');
+  await page.getByRole('button',{name:'Login',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Jobs',exact:true})).toBeVisible();
+  expect(await page.evaluate(()=>localStorage.getItem('token'))).toBe('browser-test-token');
 });

@@ -5,12 +5,13 @@ test('registration through manual application history against real API and Postg
   page.on('dialog',dialog=>dialog.accept());
   const username=`browser_${Date.now()}`;
   await page.goto('/');
-  await page.getByRole('button',{name:'Register',exact:true}).click();
+  await page.getByRole('link',{name:/Sign up/}).click();
   await page.getByPlaceholder('Username').fill(username);
   await page.getByPlaceholder('Password').fill('browser-password-123');
   await page.getByPlaceholder('Email').fill(`${username}@example.com`);
-  await page.getByRole('button',{name:'Register',exact:true}).click();
+  await page.getByRole('button',{name:'Create account',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Login',exact:true})).toBeVisible();
+  await page.getByPlaceholder('Password').fill('browser-password-123');
   await page.getByRole('button',{name:'Login',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Jobs',exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Resumes',exact:true}).click();
@@ -26,6 +27,10 @@ test('registration through manual application history against real API and Postg
   await page.getByPlaceholder('Paste the full job description').fill('Senior Quality Engineer using Java, Selenium, JUnit and Spring Boot. This is an explicit test fixture, not a live vacancy.');
   await page.getByRole('button',{name:'Save job for matching'}).click();
   await expect(page.getByText('Manually entered — unverified')).toBeVisible();
+  await page.getByRole('button',{name:'Read job: Senior Quality Engineer'}).click();
+  await expect(page.locator('.job-detail-description')).toContainText('This is an explicit test fixture, not a live vacancy.');
+  await expect(page.getByText('Manually entered — not independently verified.')).toBeVisible();
+  await page.getByRole('button',{name:'Close job details'}).click();
   await page.getByRole('button',{name:'Matches',exact:true}).click();
   await page.getByRole('button',{name:'Generate truthful tailored draft'}).click();
   await expect(page.getByRole('textbox',{name:'Edit tailored resume'})).toHaveValue(new RegExp('COMPLETE ORIGINAL RESUME'));
@@ -44,5 +49,5 @@ test('registration through manual application history against real API and Postg
   const download=page.waitForEvent('download');await page.getByRole('button',{name:'Download original'}).click();
   expect((await download).suggestedFilename()).toBe('browser-cv.txt');
   await page.getByRole('button',{name:'Logout',exact:true}).click();
-  await expect(page.getByRole('heading',{name:'Login',exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{level:1})).toContainText('Your experience.');
 });
