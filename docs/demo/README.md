@@ -1,6 +1,6 @@
 # JobPulse LinkedIn demo kit
 
-[Download the complete demo kit](JobPulse-short-demo-kit.zip).
+[Download the MP4 video separately](JobPulse-LinkedIn-short-demo.mp4), or [download the complete demo kit](JobPulse-short-demo-kit.zip).
 
 The ZIP contains a 40-second, 1080p MP4, an HD cover image, a suggested LinkedIn caption and production notes. The recording shows the redesigned application with clearly labelled demonstration data and a simulated AI response. No real applications were submitted.
 
