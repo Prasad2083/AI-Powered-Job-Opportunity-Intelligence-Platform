@@ -60,7 +60,7 @@ public class MockJobBoardClient {
      */
     public boolean apply(Job job, Resume resume) {
         // Simulate network latency and success
-        return true;
+        throw new UnsupportedOperationException("Mock client cannot submit applications");
     }
 }
 

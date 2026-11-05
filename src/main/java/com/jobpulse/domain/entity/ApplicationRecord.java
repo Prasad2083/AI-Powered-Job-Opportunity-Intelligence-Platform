@@ -47,6 +47,7 @@ public class ApplicationRecord {
     @Column(name = "custom_cover_letter")
     private String customCoverLetter;
 
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     @Column(name = "form_data_json", columnDefinition = "jsonb")
     private String formDataJson;  // Store as String if you prefer
 

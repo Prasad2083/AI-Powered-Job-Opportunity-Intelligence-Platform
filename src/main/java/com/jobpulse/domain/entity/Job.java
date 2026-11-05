@@ -5,7 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.Type;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.time.LocalDateTime;
@@ -34,6 +35,12 @@ public class Job {
 
     @Column(name = "source_job_id", nullable = false)
     private String sourceJobId;
+
+    @Column(name = "owner_user_id")
+    private Long ownerUserId;
+
+    @Column(name="last_seen_at")
+    private LocalDateTime lastSeenAt;
 
     @Column(nullable = false)
     private String title;
@@ -84,6 +91,7 @@ public class Job {
     @Column(name = "remote_option")
     private String remoteOption;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "raw_json", columnDefinition = "jsonb")
     private JsonNode rawJson;
 

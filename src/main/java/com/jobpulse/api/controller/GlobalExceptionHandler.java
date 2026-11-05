@@ -74,6 +74,31 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String,String>> handleMalformedJson(Exception ex) {
+        return ResponseEntity.badRequest().body(Map.of("message","Malformed JSON or unsupported field value"));
+    }
+
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    public ResponseEntity<Map<String,String>> handleMissingRoute(Exception ex) {
+        return ResponseEntity.status(404).body(Map.of("message","Resource not found"));
+    }
+
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<Map<String, Object>> handleStatus(org.springframework.web.server.ResponseStatusException ex) {
+        return ResponseEntity.status(ex.getStatusCode()).body(Map.of("message", ex.getReason() == null ? "Request failed" : ex.getReason()));
+    }
+
+    @ExceptionHandler({IllegalArgumentException.class, org.springframework.web.multipart.MaxUploadSizeExceededException.class})
+    public ResponseEntity<Map<String, String>> handleInput(Exception ex) {
+        return ResponseEntity.badRequest().body(Map.of("message", "Invalid input: " + ex.getMessage()));
+    }
+
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, String>> handleConflict(Exception ex) {
+        return ResponseEntity.status(409).body(Map.of("message", "A record with these unique values already exists"));
+    }
+
     /**
      * Handle all other exceptions
      */

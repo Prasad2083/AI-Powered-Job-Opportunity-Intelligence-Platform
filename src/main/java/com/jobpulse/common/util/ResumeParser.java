@@ -39,6 +39,8 @@ public final class ResumeParser {
         SKILL_CATEGORIES.put("elasticsearch", "Databases");
         SKILL_CATEGORIES.put("cassandra", "Databases");
 
+        for (String skill : List.of("selenium", "playwright", "cypress", "junit", "testng", "rest assured", "appium", "cucumber", "postman", "jmeter", "k6", "pytest", "ollama", "pytorch"))
+            SKILL_CATEGORIES.put(skill,"Testing and AI");
         // Tools & Platforms
         SKILL_CATEGORIES.put("docker", "Tools");
         SKILL_CATEGORIES.put("kubernetes", "Tools");
