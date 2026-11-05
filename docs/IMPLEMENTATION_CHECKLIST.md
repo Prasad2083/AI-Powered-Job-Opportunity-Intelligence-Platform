@@ -28,6 +28,9 @@ Baseline: existing development branch `feature/production-workflow-20261027`, PR
 
 ## Jobs and matching
 
+- [x] Experience statements use range minimums and ignore unrelated company/education year mentions; location phrases use word boundaries and accept reversed Canada/remote labels. These remain ranking hints, not eligibility verification.
+- [ ] Durable background processing for ingestion/tailoring with bounded concurrency, restart recovery and user-visible task status. Current tailoring requests remain synchronous; Kafka is not required.
+
 - [x] Configurable multiple-employer Greenhouse and Lever discovery; no single-employer dependency.
 - [x] Lever pagination, complete-response validation, bounded timeouts, per-feed failure isolation, explicit refresh reports and refresh cooldown.
 - [x] Provider-scoped deduplication, updated listing content, last-seen timestamp and freshness display.

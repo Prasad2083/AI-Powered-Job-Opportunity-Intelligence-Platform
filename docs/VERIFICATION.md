@@ -2,11 +2,19 @@
 
 Environment: managed Linux cloud workspace, Java 21 JDK, Maven 3.9.9, PostgreSQL 16 Docker containers, Node/npm and Chromium. Date: 2026-10-28. Repository baseline `9ada487`; see git history for the resulting implementation commits.
 
+## Matching accuracy increment (2026-11-05 UTC)
+
+The matcher now uses explicit experience statements (for example, `3–5 years of professional experience` → 3 years), rather than every year mention. Regression cases cover unrelated company age/education, fractional experience, multiple mentions, zero-year requirements, missing values, location word boundaries, punctuation and `Canada (Remote)` versus `Remote US`.
+
+This intentionally conservative parser does not recognize every wording (for example, `five years` or `5 years Java`), distinguish mandatory from preferred requirements, infer career length from dates, or verify work authorization. It takes the largest recognized experience minimum, which can refer to a particular skill rather than overall experience. Location matching is still a phrase heuristic, not a geographic eligibility decision. No new dependencies or database changes.
+
+Executed for this increment: Java 21 `mvn verify` **32 tests passed**, including real PostgreSQL 16, REST/security isolation and Flyway migration coverage; **10 matcher tests passed**. Frontend/browser/security entries below describe earlier runs until current CI revalidates them.
+
 ## Executed successfully
 
 | Check | Evidence and practical limit |
 | --- | --- |
-| Backend build and tests | `mvn -B -ntp verify`: 24 tests, no failures/errors/skips at the latest recorded run. Security/REST tests use the real Spring filter chain and PostgreSQL 16. |
+| Backend build and tests | `mvn -B -ntp verify`: 32 tests, no failures/errors/skips in the 2026-11-05 UTC matching increment run. Security/REST tests use the real Spring filter chain and PostgreSQL 16. |
 | Fresh schema | Flyway V1–V8 migration followed by Hibernate `validate`. No historical migration was edited. |
 | Historical upgrade | Seed V3 schema with existing user/resume text, migrate to latest, validate checksums, verify original text retained and previously unstored file bytes remain null. |
 | Authentication/isolation | Registration/login; malformed and wrong-signature JWTs; revoked sessions; disabled login; foreign resume edit/read/download/primary access; private manual jobs and saved documents; isolated history; duplicate completion rejection. |
