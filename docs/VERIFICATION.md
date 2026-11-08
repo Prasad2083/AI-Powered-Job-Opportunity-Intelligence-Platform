@@ -2,6 +2,14 @@
 
 Environment: managed Linux cloud workspace, Java 21 JDK, Maven 3.9.9, PostgreSQL 16 Docker containers, Node/npm and Chromium. Date: 2026-10-28. Repository baseline `9ada487`; see git history for the resulting implementation commits.
 
+## Background tailoring increment (2026-11-08 UTC)
+
+Executed in managed Linux: Java 21 Maven verify **37 tests passed**, zero failures/errors/skips; frontend **13 tests passed** and production build passed; Chromium **8 browser tests passed** against isolated real PostgreSQL/backend with only Ollama mocked in the full-stack workflow. The browser queued a draft, refreshed the application, reopened its persisted result, saved/exported it and completed the existing manual-tracking workflow. Responsive workspace checks passed at 1440px, 390px and 320px.
+
+New PostgreSQL cases cover task ownership and inaccessible jobs, duplicate/concurrent admission, queue capacity, global running-slot exclusion, queued/running cancellation, discarded cancelled output, immutable input snapshots, saved-version provenance, worker failure/explicit retry, interrupted-lease recovery and rejection of late results. Flyway V1–V9 validated on fresh startup and V3→V9 preserved historical resume text; V1–V8 were not edited.
+
+Dependency scans rerun: npm **0 vulnerabilities**; OSV **160 resolved dependencies**, **0 unreviewed/actionable advisories**, with the same two version-specific Spring MVC applicability reviews retained. No dependency changes. `git diff --check` passed. Actual Qwen execution, native Mac behavior, production load and destructive crash testing remain unverified; lease recovery was exercised by persisted expired running state and a fresh service instance, not by killing the user's application.
+
 ## Matching accuracy increment (2026-11-05 UTC)
 
 The matcher now uses explicit experience statements (for example, `3–5 years of professional experience` → 3 years), rather than every year mention. Regression cases cover unrelated company age/education, fractional experience, multiple mentions, zero-year requirements, missing values, location word boundaries, punctuation and `Canada (Remote)` versus `Remote US`.
@@ -14,15 +22,15 @@ Executed for this increment: Java 21 `mvn verify` **32 tests passed**, including
 
 | Check | Evidence and practical limit |
 | --- | --- |
-| Backend build and tests | `mvn -B -ntp verify`: 32 tests, no failures/errors/skips in the 2026-11-05 UTC matching increment run. Security/REST tests use the real Spring filter chain and PostgreSQL 16. |
-| Fresh schema | Flyway V1–V8 migration followed by Hibernate `validate`. No historical migration was edited. |
+| Backend build and tests | `mvn -B -ntp verify`: 37 tests, no failures/errors/skips in the 2026-11-08 UTC background tailoring run. Security/REST tests use the real Spring filter chain and PostgreSQL 16. |
+| Fresh schema | Flyway V1–V9 migration followed by Hibernate `validate`. No historical migration was edited. |
 | Historical upgrade | Seed V3 schema with existing user/resume text, migrate to latest, validate checksums, verify original text retained and previously unstored file bytes remain null. |
 | Authentication/isolation | Registration/login; malformed and wrong-signature JWTs; revoked sessions; disabled login; foreign resume edit/read/download/primary access; private manual jobs and saved documents; isolated history; duplicate completion rejection. |
 | Resume extraction | Generated real PDF and DOCX fixtures plus TXT uploads; malformed/unsupported/empty files; original-byte preservation. Saved Word exports are reopened with POI to verify Unicode text and facts; invalid export formats and foreign-user downloads are rejected. No OCR claim. |
 | Matching | Deterministic skill evidence and seniority/location explanations, bounded score, explicit years versus unknown date-derived totals. |
 | Feed tests | Failed employer isolation, Lever requirement content, stable provider IDs, refresh versus archive semantics. |
 | Ollama protocol | `/api/chat` request/response mocks, schema-constrained source references, empty response and invalid evidence rejection. No live Qwen model test. |
-| Frontend component | `npm test`: 9 tests pass across home/account navigation, registration, inline errors, pending login and safe job-description rendering. |
+| Frontend component | `npm test`: 13 tests pass across home/account navigation, registration, inline errors, pending login and safe job-description rendering. |
 | Frontend production build | `npm run build` succeeds with Vite 7. |
 | Browser with mocked API | Login → resume preview → logout → login again in Chromium; verifies no blank dashboard on re-entry. |
 | Full-stack browser | 8 tests passed: real React + Spring Boot + isolated PostgreSQL 16; only Ollama mocked. Home → signup → login → upload TXT → private job → read job description → match → draft → approval/save → report manual completion → update reported status → verify original unchanged/download → logout. The current real-stack test also downloads and checks DOCX bytes, edits application notes, and verifies unsaved edits disable stale Word downloads. |

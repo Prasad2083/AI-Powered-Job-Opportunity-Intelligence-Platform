@@ -1,6 +1,6 @@
 package com.jobpulse.application.controller;
 
-import com.jobpulse.application.service.ResumeTailoringService;
+import com.jobpulse.application.service.TailoringTaskService;
 import com.jobpulse.domain.repository.JobRepository;
 import com.jobpulse.domain.repository.ResumeRepository;
 import com.jobpulse.domain.repository.UserRepository;
@@ -8,32 +8,48 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/tailoring")
 public class TailoringController {
-    private final ResumeTailoringService tailoring;
+    private final TailoringTaskService tasks;
     private final com.jobpulse.application.service.DocumentExportService exports;
     private final ResumeRepository resumes;
     private final JobRepository jobs;
     private final UserRepository users;
     private final com.jobpulse.domain.repository.TailoredDocumentRepository documents;
-    TailoringController(ResumeTailoringService tailoring, ResumeRepository resumes, JobRepository jobs, UserRepository users, com.jobpulse.domain.repository.TailoredDocumentRepository documents, com.jobpulse.application.service.DocumentExportService exports) {
-        this.tailoring=tailoring;this.resumes=resumes;this.jobs=jobs;this.users=users;this.documents=documents;this.exports=exports;
+    TailoringController(TailoringTaskService tasks, ResumeRepository resumes, JobRepository jobs, UserRepository users, com.jobpulse.domain.repository.TailoredDocumentRepository documents, com.jobpulse.application.service.DocumentExportService exports) {
+        this.tasks=tasks;this.resumes=resumes;this.jobs=jobs;this.users=users;this.documents=documents;this.exports=exports;
     }
-    @PostMapping("/{jobId}")
-    public Map<String,Object> preview(@PathVariable Long jobId, Authentication auth) {
-        Long uid=users.findByUsername(auth.getName()).orElseThrow().getId();
-        var resume=resumes.findFirstByUserIdAndIsPrimaryTrue(uid).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Resume missing"));
-        var job=jobs.findVisible(uid).stream().filter(j -> j.getId().equals(jobId)).findFirst().orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Job missing"));
-        String draft=tailoring.tailor(resume.getContentText(),job.getJobDescription());
-        return Map.of("resumeId",resume.getId(),"jobId",jobId,"draft",draft,"status","DRAFT_REVIEW_REQUIRED","applyUrl",job.getApplyUrl()==null?"":job.getApplyUrl());
+    // The former preview route also queues work; it cannot bypass model concurrency limits.
+    @PostMapping({"/{jobId}","/tasks/{jobId}"})
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public TailoringTaskService.Task preview(@PathVariable Long jobId, Authentication auth) {
+        return tasks.enqueue(userId(auth),jobId);
+    }
+
+    @GetMapping("/tasks")
+    public java.util.List<TailoringTaskService.Task> tasks(Authentication auth) {
+        return tasks.list(userId(auth));
+    }
+
+    @GetMapping("/tasks/{id}")
+    public TailoringTaskService.Task task(@PathVariable long id,Authentication auth) {
+        return tasks.get(userId(auth),id);
+    }
+
+    @PostMapping("/tasks/{id}/cancel")
+    public TailoringTaskService.Task cancel(@PathVariable long id,Authentication auth) {
+        return tasks.cancel(userId(auth),id);
+    }
+
+    private long userId(Authentication auth) {
+        return users.findByUsername(auth.getName()).orElseThrow().getId();
     }
 
     public record SaveRequest(@jakarta.validation.constraints.NotNull Long resumeId, @jakarta.validation.constraints.NotNull Long jobId,
         @jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(max=100000) String content,
-        boolean approved) {}
+        boolean approved, Long taskId, Long sourceDocumentId) {}
 
     @PostMapping("/documents")
     public com.jobpulse.domain.entity.TailoredDocument save(@jakarta.validation.Valid @RequestBody SaveRequest input, Authentication auth) {
@@ -44,7 +60,14 @@ public class TailoringController {
             .orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Job missing"));
         var document=new com.jobpulse.domain.entity.TailoredDocument();
         document.setUserId(uid);document.setResumeId(resume.getId());document.setJobId(input.jobId());
-        document.setContent(input.content());document.setOriginalSnapshot(resume.getContentText());document.setApproved(input.approved());
+        document.setContent(input.content());
+        String snapshot=resume.getContentText();
+        if(input.sourceDocumentId()!=null) snapshot=documents.findByIdAndUserId(input.sourceDocumentId(),uid)
+            .filter(source->source.getResumeId().equals(input.resumeId()) && source.getJobId().equals(input.jobId()))
+            .orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Source document missing")).getOriginalSnapshot();
+        if(input.taskId()!=null) snapshot=tasks.originalForSave(uid,input.taskId(),resume.getId(),input.jobId());
+        document.setOriginalSnapshot(snapshot);
+        document.setApproved(input.approved());
         return documents.save(document);
     }
 

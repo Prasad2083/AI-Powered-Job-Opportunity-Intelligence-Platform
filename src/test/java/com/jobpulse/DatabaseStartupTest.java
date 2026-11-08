@@ -19,6 +19,7 @@ class DatabaseStartupTest {
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
         registry.add("app.security.jwt.secret", () -> "test-only-signing-key-that-is-long-enough-for-hs512-keep-out-of-production-123456789");
+        registry.add("jobpulse.tailoring.worker-enabled", () -> "false");
         registry.add("jobpulse.feeds.include-mock", () -> "false");
         registry.add("jobpulse.feeds.greenhouse-boards", () -> "");
         registry.add("jobpulse.feeds.lever-sites", () -> "");
@@ -144,5 +145,152 @@ class DatabaseStartupTest {
             .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().json("[]"));
         mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/users").header("Authorization","Bearer "+alice))
             .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isNotFound());
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired com.jobpulse.application.service.TailoringTaskService taskQueue;
+    @org.springframework.beans.factory.annotation.Autowired com.jobpulse.domain.repository.ResumeRepository resumeRepository;
+    @org.springframework.beans.factory.annotation.Autowired com.jobpulse.domain.repository.JobRepository jobRepository;
+
+    private record QueueFixture(String token,long uid,long resumeId,long jobId) {}
+    private QueueFixture queueFixture(String name) throws Exception {
+        String token=registerAndLogin(name);
+        var upload=new org.springframework.mock.web.MockMultipartFile("file","original.txt","text/plain","Senior Java engineer with Spring Boot".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        var response=mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/resumes/upload").file(upload).header("Authorization","Bearer "+token))
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk()).andReturn();
+        long resume=mapper.readTree(response.getResponse().getContentAsString()).path("id").asLong();
+        var manual=mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/jobs/manual").header("Authorization","Bearer "+token).contentType("application/json")
+            .content("{\"title\":\"Queue fixture\",\"company\":\"Test fixture\",\"description\":\"Java Spring Boot testing experience for backend services\"}"))
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk()).andReturn();
+        long job=mapper.readTree(manual.getResponse().getContentAsString()).path("id").asLong();
+        return new QueueFixture(token,users.findByUsername(name).orElseThrow().getId(),resume,job);
+    }
+
+    @Test void queueIsolationCancellationAndSnapshotSaving() throws Exception {
+        var alice=queueFixture("queue-alice"); var bob=queueFixture("queue-bob");
+        try {
+            mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/tailoring/tasks"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isUnauthorized());
+            var response=mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/tailoring/tasks/"+alice.jobId()).header("Authorization","Bearer "+alice.token()))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isAccepted())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.status").value("QUEUED")).andReturn();
+            long id=mapper.readTree(response.getResponse().getContentAsString()).path("id").asLong();
+            mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/tailoring/"+alice.jobId()).header("Authorization","Bearer "+alice.token()))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isConflict());
+            for(String route: new String[]{"/tailoring/tasks/"+id,"/tailoring/tasks/"+id+"/cancel"}) {
+                var request=route.endsWith("cancel")?org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(route):org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(route);
+                mvc.perform(request.header("Authorization","Bearer "+bob.token())).andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isNotFound());
+            }
+            mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/tailoring/tasks/"+alice.jobId()).header("Authorization","Bearer "+bob.token()))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isNotFound());
+            mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/tailoring/tasks").header("Authorization","Bearer "+bob.token()))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().json("[]"));
+            database.update("UPDATE resumes SET content_text='Changed after enqueue' WHERE id=?",alice.resumeId());
+            database.update("UPDATE jobs SET job_description='Changed job after enqueue' WHERE id=?",alice.jobId());
+            var work=taskQueue.claim().orElseThrow();
+            org.junit.jupiter.api.Assertions.assertEquals("Senior Java engineer with Spring Boot",work.original());
+            org.junit.jupiter.api.Assertions.assertEquals("Java Spring Boot testing experience for backend services",work.description());
+            var second=taskQueue.enqueue(bob.uid(),bob.jobId());
+            org.junit.jupiter.api.Assertions.assertTrue(taskQueue.claim().isEmpty(),"A second model call cannot run concurrently");
+            mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/tailoring/tasks/"+id+"/cancel").header("Authorization","Bearer "+alice.token()))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.status").value("CANCEL_REQUESTED"));
+            org.junit.jupiter.api.Assertions.assertTrue(taskQueue.claim().isEmpty(),"Cancellation retains the running slot until completion");
+            taskQueue.complete(id,"must be discarded",null);
+            org.junit.jupiter.api.Assertions.assertEquals("CANCELLED",taskQueue.get(alice.uid(),id).status());
+            org.junit.jupiter.api.Assertions.assertNull(taskQueue.get(alice.uid(),id).draft());
+            var bobWork=taskQueue.claim().orElseThrow();
+            database.update("UPDATE resumes SET content_text='Bob changed his editable resume' WHERE id=?",bob.resumeId());
+            taskQueue.complete(bobWork.id(),bobWork.original(),null);
+            String body=mapper.writeValueAsString(java.util.Map.of("resumeId",bob.resumeId(),"jobId",bob.jobId(),"content",bobWork.original(),"approved",false,"taskId",second.id()));
+            var saved=mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/tailoring/documents").header("Authorization","Bearer "+bob.token()).contentType("application/json").content(body))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.originalSnapshot").value(bobWork.original())).andReturn();
+            long savedId=mapper.readTree(saved.getResponse().getContentAsString()).path("id").asLong();
+            String nextVersion=mapper.writeValueAsString(java.util.Map.of("resumeId",bob.resumeId(),"jobId",bob.jobId(),"content",bobWork.original(),"sourceDocumentId",savedId));
+            mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/tailoring/documents").header("Authorization","Bearer "+bob.token()).contentType("application/json").content(nextVersion))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.originalSnapshot").value(bobWork.original()));
+            org.junit.jupiter.api.Assertions.assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                ()->taskQueue.originalForSave(alice.uid(),second.id(),alice.resumeId(),alice.jobId()));
+            for(String reference:new String[]{"taskId","sourceDocumentId"}) {
+                String foreignSource=mapper.writeValueAsString(java.util.Map.of("resumeId",alice.resumeId(),"jobId",alice.jobId(),"content","Own edited text",reference,reference.equals("taskId")?second.id():savedId));
+                mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/tailoring/documents").header("Authorization","Bearer "+alice.token()).contentType("application/json").content(foreignSource))
+                    .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isNotFound());
+            }
+            var queued=taskQueue.enqueue(alice.uid(),alice.jobId());
+            org.junit.jupiter.api.Assertions.assertEquals("CANCELLED",taskQueue.cancel(alice.uid(),queued.id()).status());
+            org.junit.jupiter.api.Assertions.assertTrue(taskQueue.claim().isEmpty());
+        } finally { database.update("DELETE FROM tailoring_tasks"); }
+    }
+
+    @Test void interruptedTasksRecoverWithoutAcceptingLateResults() throws Exception {
+        var fixture=queueFixture("queue-recovery");
+        try {
+            var first=taskQueue.enqueue(fixture.uid(),fixture.jobId()); taskQueue.claim().orElseThrow();
+            database.update("UPDATE tailoring_tasks SET started_at=clock_timestamp()-interval '6 minutes' WHERE id=?",first.id());
+            // A fresh service represents a restarted process; all state is in PostgreSQL.
+            var restarted=new com.jobpulse.application.service.TailoringTaskService(database,resumeRepository,jobRepository);
+            org.junit.jupiter.api.Assertions.assertTrue(restarted.claim().isEmpty());
+            org.junit.jupiter.api.Assertions.assertEquals("FAILED",restarted.get(fixture.uid(),first.id()).status());
+            restarted.complete(first.id(),"late result",null);
+            org.junit.jupiter.api.Assertions.assertNull(restarted.get(fixture.uid(),first.id()).draft());
+            var retry=restarted.enqueue(fixture.uid(),fixture.jobId()); restarted.claim().orElseThrow();
+            restarted.cancel(fixture.uid(),retry.id());
+            database.update("UPDATE tailoring_tasks SET started_at=clock_timestamp()-interval '6 minutes' WHERE id=?",retry.id());
+            restarted.claim();
+            org.junit.jupiter.api.Assertions.assertEquals("CANCELLED",restarted.get(fixture.uid(),retry.id()).status());
+        } finally { database.update("DELETE FROM tailoring_tasks"); }
+    }
+
+    @Test void workerFailureIsSafeAndExplicitRetryCanSucceed() throws Exception {
+        var fixture=queueFixture("queue-worker");
+        var model=org.mockito.Mockito.mock(com.jobpulse.application.service.ResumeTailoringService.class);
+        var worker=new com.jobpulse.application.service.TailoringTaskWorker(taskQueue,model);
+        try {
+            var first=taskQueue.enqueue(fixture.uid(),fixture.jobId());
+            org.mockito.Mockito.when(model.tailor(org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.anyString()))
+                .thenThrow(new IllegalStateException("sensitive provider response"));
+            worker.processNext();
+            var failed=taskQueue.get(fixture.uid(),first.id());
+            org.junit.jupiter.api.Assertions.assertEquals("FAILED",failed.status());
+            org.junit.jupiter.api.Assertions.assertFalse(failed.error().contains("sensitive"));
+            var retry=taskQueue.enqueue(fixture.uid(),fixture.jobId());
+            org.mockito.Mockito.doReturn("Senior Java engineer with Spring Boot").when(model).tailor(org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.anyString());
+            worker.processNext();
+            org.junit.jupiter.api.Assertions.assertEquals("SUCCEEDED",taskQueue.get(fixture.uid(),retry.id()).status());
+            org.junit.jupiter.api.Assertions.assertEquals("Senior Java engineer with Spring Boot",taskQueue.get(fixture.uid(),retry.id()).draft());
+            var oversized=taskQueue.enqueue(fixture.uid(),fixture.jobId());
+            org.mockito.Mockito.doReturn("a".repeat(100001)).when(model).tailor(org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.anyString());
+            worker.processNext();
+            org.junit.jupiter.api.Assertions.assertEquals("FAILED",taskQueue.get(fixture.uid(),oversized.id()).status());
+            org.junit.jupiter.api.Assertions.assertNull(taskQueue.get(fixture.uid(),oversized.id()).draft());
+            org.junit.jupiter.api.Assertions.assertTrue(taskQueue.get(fixture.uid(),oversized.id()).error().contains("editor limit"));
+        } finally { database.update("DELETE FROM tailoring_tasks"); }
+    }
+
+    @Test void concurrentEnqueueHasOnlyOneWinner() throws Exception {
+        var fixture=queueFixture("queue-concurrent");
+        try(var executor=java.util.concurrent.Executors.newFixedThreadPool(2)) {
+            var start=new java.util.concurrent.CountDownLatch(1);
+            java.util.concurrent.Callable<Integer> attempt=()-> { start.await(); try { taskQueue.enqueue(fixture.uid(),fixture.jobId()); return 202; }
+                catch(org.springframework.web.server.ResponseStatusException e) { return e.getStatusCode().value(); } };
+            var first=executor.submit(attempt); var second=executor.submit(attempt); start.countDown();
+            org.junit.jupiter.api.Assertions.assertEquals(java.util.Set.of(202,409),java.util.Set.of(first.get(10,java.util.concurrent.TimeUnit.SECONDS),second.get(10,java.util.concurrent.TimeUnit.SECONDS)));
+            org.junit.jupiter.api.Assertions.assertEquals(1,taskQueue.list(fixture.uid()).size());
+        } finally { database.update("DELETE FROM tailoring_tasks"); }
+    }
+
+    @Test void fullQueueRejectsAdditionalWorkWithoutDroppingExistingTasks() throws Exception {
+        var fixture=queueFixture("queue-capacity");
+        try {
+            for(int i=0;i<20;i++) {
+                String name="queue-seed-"+i;
+                long uid=database.queryForObject("INSERT INTO users(username,email,password_hash) VALUES (?,?,?) RETURNING id",Long.class,name,name+"@example.com","test-only");
+                long resume=database.queryForObject("INSERT INTO resumes(user_id,file_name,file_path,content_text,is_primary) VALUES (?,'fixture.txt','test-only','Fixture resume',true) RETURNING id",Long.class,uid);
+                database.update("INSERT INTO tailoring_tasks(user_id,resume_id,job_id,original_snapshot,description_snapshot) VALUES (?,?,?,'Fixture resume','Fixture job description')",uid,resume,fixture.jobId());
+            }
+            var failure=org.junit.jupiter.api.Assertions.assertThrows(org.springframework.web.server.ResponseStatusException.class,()->taskQueue.enqueue(fixture.uid(),fixture.jobId()));
+            org.junit.jupiter.api.Assertions.assertEquals(429,failure.getStatusCode().value());
+            org.junit.jupiter.api.Assertions.assertEquals(20L,database.queryForObject("SELECT count(*) FROM tailoring_tasks",Long.class));
+        } finally { database.update("DELETE FROM tailoring_tasks"); }
     }
 }

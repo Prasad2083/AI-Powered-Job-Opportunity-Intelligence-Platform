@@ -33,6 +33,10 @@ test('registration through manual application history against real API and Postg
   await page.getByRole('button',{name:'Close job details'}).click();
   await page.getByRole('button',{name:'Matches',exact:true}).click();
   await page.getByRole('button',{name:'Generate truthful tailored draft'}).click();
+  await expect(page.getByText('Ready for review',{exact:true})).toBeVisible();
+  await page.reload();
+  await page.getByRole('button',{name:'Matches',exact:true}).click();
+  await page.getByRole('button',{name:/Open draft task #/}).click();
   await expect(page.getByRole('textbox',{name:'Edit tailored resume'})).toHaveValue(new RegExp('COMPLETE ORIGINAL RESUME'));
   await expect(page.getByRole('button',{name:'Download Word (.docx)',exact:true})).toBeDisabled();
   await page.getByRole('checkbox').check();

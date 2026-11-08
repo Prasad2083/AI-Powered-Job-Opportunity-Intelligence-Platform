@@ -11,7 +11,7 @@ Baseline: existing development branch `feature/production-workflow-20261027`, PR
 - [x] BCrypt registration, input bounds, JWT signature/expiry validation, disabled-user checks, HTTP 401 behavior.
 - [x] Logout increments a persisted token version and revokes prior sessions. Frontend clears expired sessions.
 - [x] Own-user resume, tailored-document, preferences, manual-job and application access. DTOs avoid password-hash serialization.
-- [x] PostgreSQL 16 fresh migrations and Hibernate validation; historical V3→latest upgrade preserves resume text. V4–V8 are additive.
+- [x] PostgreSQL 16 fresh migrations and Hibernate validation; historical V3→latest upgrade preserves resume text. V4–V9 are additive.
 - [x] No automatic seed resumes, schema dropping, mock submission success, or hard-coded runtime JWT default.
 - [ ] Resolve/rotate any credentials formerly stored in repository history; current tree excludes `.env` and logs.
 - [ ] Production abuse controls (distributed throttling, password recovery, TLS/cookie/session hardening) before public exposure. Current local launcher binds to loopback.
@@ -29,7 +29,8 @@ Baseline: existing development branch `feature/production-workflow-20261027`, PR
 ## Jobs and matching
 
 - [x] Experience statements use range minimums and ignore unrelated company/education year mentions; location phrases use word boundaries and accept reversed Canada/remote labels. These remain ranking hints, not eligibility verification.
-- [ ] Durable background processing for ingestion/tailoring with bounded concurrency, restart recovery and user-visible task status. Current tailoring requests remain synchronous; Kafka is not required.
+- [x] Durable PostgreSQL tailoring queue: source snapshots, one model task at a time, one active task per user, bounded admission, owner-only status/results, cancellation and expired-lease recovery. Model failures require explicit retry; task history survives browser refresh. No Kafka.
+- [ ] Durable ingestion queue, provider-aware retry/backoff and broader operational metrics; ingestion is still the existing scheduled/manual process.
 
 - [x] Configurable multiple-employer Greenhouse and Lever discovery; no single-employer dependency.
 - [x] Lever pagination, complete-response validation, bounded timeouts, per-feed failure isolation, explicit refresh reports and refresh cooldown.
@@ -45,6 +46,8 @@ Baseline: existing development branch `feature/production-workflow-20261027`, PR
 - [ ] Provider 429 retry/backoff beyond the current refresh cooldown and failure retention, large-dataset paging/index tuning and ingestion operational metrics.
 
 ## Tailoring and applications
+
+- [x] Opening a completed task is explicit, so background completion cannot replace an edited draft. Saving task-derived and subsequent document versions retains the original source snapshot.
 
 - [x] Local Ollama `qwen3:4b` protocol; no paid AI dependency.
 - [x] Source-constrained generation: model proposes line references; server validates them and emits only original excerpts plus the unchanged original text. Arbitrary model prose never becomes a professional claim.

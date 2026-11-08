@@ -14,6 +14,10 @@ Reviewed 2026-10-28. Current launcher is local-only; do not expose it publicly w
 - Replaced unconstrained model prose with validated original-line selection. Model output cannot add new professional facts to generated drafts. Users still must review edits and source accuracy.
 - Patched the dependency set and bound the normal backend/launcher to loopback. Docker profile deliberately binds inside its container; do not expose its host ports publicly by default.
 
+## Background tailoring review (2026-11-08 UTC)
+
+Task creation checks the user’s primary resume and job visibility. Task list, result and cancellation queries always include the authenticated owner. Input snapshots remain private in PostgreSQL and only the validated draft is returned. Source snapshots survive subsequent resume edits and document version saves. Admission is serialized through a database row lock with one active task per user and at most 20 active tasks globally; only one task holds the running slot. Cancellation retains that slot until completion or lease expiry and discards model output. Errors use controlled messages rather than storing arbitrary provider exceptions. Existing disk/backup protection requirements apply to these additional sensitive snapshots; automatic retention/deletion is not yet implemented.
+
 ## Dependency evidence
 
 The original resolved Maven scan had 36 affected packages. Spring Boot 3.5.16 plus supported patch overrides for Tomcat, PostgreSQL JDBC, Jackson, Log4j API and Commons Lang, updated PDFBox/POI/Commons IO, and removal of unused WebFlux reduced actionable findings to zero in the completed OSV scan. Frontend npm audit reports zero after Vite/test-tool upgrades.
