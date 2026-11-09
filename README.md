@@ -29,6 +29,8 @@ After pulling backend changes, stop the existing backend before relaunching so t
 6. Complete applications on official employer sites. Check the in-page completion confirmation and record a **user-reported** application; this is never provider confirmation. Track interview, offer, rejection, or withdrawal statuses in history. Filter by your reported status and use **Edit notes** to keep follow-ups and next steps.
 7. Logout revokes all existing tokens for your account. Sessions otherwise expire after one hour by default.
 
+Job-feed failures defer that employer’s next request using exponential backoff (one minute up to one hour); HTTP 429/503 `Retry-After` can extend the delay. Healthy feeds still refresh. Deferred sources retain prior listings and are not marked freshly checked. Retries occur on the next scheduled/manual refresh after the deadline; backoff state resets on backend restart.
+
 Draft preparation runs in the backend using PostgreSQL; no extra service or Kafka installation is required. Queued work resumes after restart. Interrupted running work becomes failed after its five-minute lease expires and needs an explicit retry. See [background draft behavior and checks](docs/BACKGROUND_DRAFTS.md).
 
 No paid AI API, cloud account, subscription, or billing is required. See [provider research](docs/APPLICATION_PROVIDER_RESEARCH.md) for why unattended submission remains disabled.

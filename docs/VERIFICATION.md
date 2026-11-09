@@ -2,6 +2,12 @@
 
 Environment: managed Linux cloud workspace, Java 21 JDK, Maven 3.9.9, PostgreSQL 16 Docker containers, Node/npm and Chromium. Date: 2026-10-28. Repository baseline `9ada487`; see git history for the resulting implementation commits.
 
+## Feed retry resilience increment (2026-11-09 UTC)
+
+Executed Java 21 Maven verify: **42 tests passed**, zero failures/errors/skips, including real PostgreSQL/REST/security/Flyway coverage. The **7 feed/retry tests** use controlled HTTP responses and a mutable clock, without sleeping or hitting live providers. They check bounded exponential delay, successful-response reset, HTTP 429/503 Retry-After seconds and RFC dates, malformed/past/overflowing delay values, preserved longer provider deadlines, independent healthy feeds and failed later-page retention.
+
+No dependencies, frontend behavior or database migrations changed. Backoff is per employer and held in memory; a restart resets it. Retry eligibility is checked during normal scheduled/manual refresh, not by a separate wake-up timer. Failed/deferred feeds are excluded from successful-source checks, preserving existing archival safeguards. Frontend/browser/security evidence below refers to preceding runs until current CI revalidates this commit.
+
 ## Background tailoring increment (2026-11-08 UTC)
 
 Executed in managed Linux: Java 21 Maven verify **37 tests passed**, zero failures/errors/skips; frontend **13 tests passed** and production build passed; Chromium **8 browser tests passed** against isolated real PostgreSQL/backend with only Ollama mocked in the full-stack workflow. The browser queued a draft, refreshed the application, reopened its persisted result, saved/exported it and completed the existing manual-tracking workflow. Responsive workspace checks passed at 1440px, 390px and 320px.
@@ -22,7 +28,7 @@ Executed for this increment: Java 21 `mvn verify` **32 tests passed**, including
 
 | Check | Evidence and practical limit |
 | --- | --- |
-| Backend build and tests | `mvn -B -ntp verify`: 37 tests, no failures/errors/skips in the 2026-11-08 UTC background tailoring run. Security/REST tests use the real Spring filter chain and PostgreSQL 16. |
+| Backend build and tests | `mvn -B -ntp verify`: 42 tests, no failures/errors/skips in the 2026-11-09 UTC feed retry run. Security/REST tests use the real Spring filter chain and PostgreSQL 16. |
 | Fresh schema | Flyway V1–V9 migration followed by Hibernate `validate`. No historical migration was edited. |
 | Historical upgrade | Seed V3 schema with existing user/resume text, migrate to latest, validate checksums, verify original text retained and previously unstored file bytes remain null. |
 | Authentication/isolation | Registration/login; malformed and wrong-signature JWTs; revoked sessions; disabled login; foreign resume edit/read/download/primary access; private manual jobs and saved documents; isolated history; duplicate completion rejection. |

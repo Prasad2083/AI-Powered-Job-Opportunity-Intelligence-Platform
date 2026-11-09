@@ -12,12 +12,15 @@ import java.util.*;
 public class PublicJobFeedService {
     private static final org.slf4j.Logger log=org.slf4j.LoggerFactory.getLogger(PublicJobFeedService.class);
     private final RestClient client;
+    private final FeedRetryPolicy retry;
     public PublicJobFeedService() {
+        retry=new FeedRetryPolicy(java.time.Clock.systemUTC());
         var factory=new org.springframework.http.client.SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(5000);factory.setReadTimeout(15000);
         client=RestClient.builder().requestFactory(factory).build();
     }
-    PublicJobFeedService(RestClient client,String boards,String sites) {this.client=client;greenhouseBoards=boards;leverSites=sites;}
+    PublicJobFeedService(RestClient client,String boards,String sites) {this(client,boards,sites,new FeedRetryPolicy(java.time.Clock.systemUTC()));}
+    PublicJobFeedService(RestClient client,String boards,String sites,FeedRetryPolicy retry) {this.client=client;greenhouseBoards=boards;leverSites=sites;this.retry=retry;}
     @Value("${jobpulse.feeds.greenhouse-boards:canonical,reddit,gitlab}") private String greenhouseBoards;
     @Value("${jobpulse.feeds.lever-sites:ataccama,caseware}") private String leverSites;
 
@@ -29,18 +32,22 @@ public class PublicJobFeedService {
         for(String board:greenhouseBoards.split(",")) {
             String id=board.trim();if(id.isEmpty()) continue;
             String source="GREENHOUSE:"+id;
+            var deferred=retry.deferred(source);
+            if(deferred.isPresent()) {failures.put(source,deferred.get());continue;}
             try {
                 validateSlug(id);
                 JsonNode result=client.get().uri("https://boards-api.greenhouse.io/v1/boards/"+id+"/jobs?content=true").retrieve().body(JsonNode.class);
                 if(result==null || !result.path("jobs").isArray()) throw new IllegalArgumentException("Unexpected provider response");
                 List<ExternalJob> batch=new ArrayList<>();
                 for(JsonNode item:result.path("jobs")) batch.add(greenhouse(item,id));
-                jobs.addAll(batch);success.add(source);
-            } catch(Exception ex) {failures.put(source,"Feed unavailable or malformed; previous listings retained");log.warn("Feed {} failed: {}",source,ex.getClass().getSimpleName());}
+                jobs.addAll(batch);success.add(source);retry.succeeded(source);
+            } catch(Exception ex) {retry.failed(source,ex);failures.put(source,"Feed unavailable or malformed; previous listings retained");log.warn("Feed {} failed: {}",source,ex.getClass().getSimpleName());}
         }
         for(String site:leverSites.split(",")) {
             String id=site.trim();if(id.isEmpty()) continue;
             String source="LEVER:"+id;
+            var deferred=retry.deferred(source);
+            if(deferred.isPresent()) {failures.put(source,deferred.get());continue;}
             try {
                 validateSlug(id);List<ExternalJob> batch=new ArrayList<>();boolean complete=false;
                 for(int skip=0;skip<10000;skip+=100) {
@@ -50,8 +57,8 @@ public class PublicJobFeedService {
                     if(result.size()<100) {complete=true;break;}
                 }
                 if(!complete) throw new IllegalArgumentException("Pagination safety limit reached");
-                jobs.addAll(batch);success.add(source);
-            } catch(Exception ex) {failures.put(source,"Feed unavailable, incomplete or malformed; previous listings retained");log.warn("Feed {} failed: {}",source,ex.getClass().getSimpleName());}
+                jobs.addAll(batch);success.add(source);retry.succeeded(source);
+            } catch(Exception ex) {retry.failed(source,ex);failures.put(source,"Feed unavailable, incomplete or malformed; previous listings retained");log.warn("Feed {} failed: {}",source,ex.getClass().getSimpleName());}
         }
         return new FeedBatch(jobs,success,failures);
     }

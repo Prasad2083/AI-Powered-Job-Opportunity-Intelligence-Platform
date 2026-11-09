@@ -30,7 +30,7 @@ Baseline: existing development branch `feature/production-workflow-20261027`, PR
 
 - [x] Experience statements use range minimums and ignore unrelated company/education year mentions; location phrases use word boundaries and accept reversed Canada/remote labels. These remain ranking hints, not eligibility verification.
 - [x] Durable PostgreSQL tailoring queue: source snapshots, one model task at a time, one active task per user, bounded admission, owner-only status/results, cancellation and expired-lease recovery. Model failures require explicit retry; task history survives browser refresh. No Kafka.
-- [ ] Durable ingestion queue, provider-aware retry/backoff and broader operational metrics; ingestion is still the existing scheduled/manual process.
+- [ ] Durable ingestion queue and broader operational metrics; ingestion is still the existing scheduled/manual process.
 
 - [x] Configurable multiple-employer Greenhouse and Lever discovery; no single-employer dependency.
 - [x] Lever pagination, complete-response validation, bounded timeouts, per-feed failure isolation, explicit refresh reports and refresh cooldown.
@@ -43,7 +43,8 @@ Baseline: existing development branch `feature/production-workflow-20261027`, PR
 - [x] Missing evidence is labeled for review, not asserted as a genuine skill deficiency. Date ranges are not invented into experience totals.
 - [x] Live HTTP checks of default boards, including Toronto listings in both selected Lever feeds.
 - [ ] Semantic verification of mandatory qualifications, overlapping work-history calculations, geographic/work-authorization eligibility and embeddings. All eligibility remains subject to human review.
-- [ ] Provider 429 retry/backoff beyond the current refresh cooldown and failure retention, large-dataset paging/index tuning and ingestion operational metrics.
+- [x] Per-employer feed retry deferral with bounded exponential backoff, HTTP 429/503 Retry-After seconds/date support, success reset and independent healthy-feed refresh. Deferral never marks a source checked or archives its listings. Backoff state is in memory and resets on restart.
+- [ ] Persistent retry/ingestion state, large-dataset paging/index tuning and ingestion operational metrics.
 
 ## Tailoring and applications
 
