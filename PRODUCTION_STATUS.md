@@ -1,21 +1,30 @@
 # Release status: local development candidate; do not merge or deploy yet
 
-The existing project now builds and has validated local workflows using PostgreSQL 16, Java 21, React and mocked local Ollama protocol responses. See [verification](docs/VERIFICATION.md) for executed tests and their limits, and [implementation checklist](docs/IMPLEMENTATION_CHECKLIST.md) for acceptance status.
+Application source was published to the existing development branch as `5e357dc` on 2026-11-11 using the authorized GitHub connector with an expected-head check and a non-force fast-forward. The published source tree exactly matched the locally tested tree. The five original development commits are retained in local merged history, a preservation branch and private Git bundles; no existing work was discarded.
 
-Implemented: durable background resume tailoring with owner-only task status, source snapshots, cancellation and recovery; a unified home/workspace visual system and saved Word/DOCX exports, paged job filtering and editable application notes; a professional public home page and account entry flow; private full job-description review; secure user-scoped workflows and revocable JWT sessions; PDF/DOCX/TXT resume management with original-byte preservation; configurable Greenhouse/Lever ingestion and freshness; explained deterministic matching; source-constrained Ollama drafts with edit/review/version saving; manual application history/status tracking; profile preferences; improved local launcher; meaningful CI and vulnerability scans.
+## Verified in GitHub Actions
 
-No OpenAI API key is required. No provider-confirmed submission capability is implemented. Real submissions stay disabled; manual completions are explicitly user-reported. Free-form factual AI rewriting and automated eligibility remain incomplete.
+[CI run 42945174233](https://github.com/Prasad2083/AI-Powered-Job-Opportunity-Intelligence-Platform/actions/runs/42945174233) passed all four jobs on `5e357dc`:
 
-Release gates still include native macOS/Ollama acceptance, historical credential rotation, review of known limitations, and successful current CI. The PR should remain draft; no merge or deployment is authorized until the original release requirements are met. Nothing has been publicly hosted.
+- Java 21 backend: **67 tests passed**, zero failures/errors/skips, including real PostgreSQL 16, authentication/ownership, persistent retry-state concurrency and archived-listing document preservation.
+- Flyway V1–V10 fresh startup and V3→V10 historical upgrade preserve existing resume text; historical migrations were not edited.
+- Frontend: **13 tests passed**, production build passed and npm audit reported **0 vulnerabilities**.
+- Chromium: **8 browser tests passed**, including the real backend/PostgreSQL workflow with only Ollama mocked in that flow.
+- OSV: **160 dependencies scanned**, **0 unreviewed/actionable findings**; two version-specific Spring MVC applicability reviews remain visible, not patched or erased.
+- Launcher shell syntax passed.
 
-## Current execution and publication gate (2026-11-11 UTC)
+Implemented local workflows include secure user-scoped authentication, original-preserving PDF/DOCX/TXT resume management, public employer discovery with persistent provider retry metadata, explained matching with canonical spellings and immutable per-request preparation, durable source-constrained AI tasks, owned document version preservation after listing archival, TXT/Word downloads, manual application tracking, preferences and the unified home/workspace UI. Original resumes are retained; successful submissions are never invented. No paid AI API is required.
 
-The remote development branch was last confirmed at `8d295ed`. Local commits include persistent retry metadata (`3087a67`), the product/hosting backlog (`ed7fb02`) and a subsequent archived-source document preservation fix. Those changes are not established as published or fully integrated.
+## Remaining release gates and scope
 
-Current local validation: 57 non-PostgreSQL backend tests pass, including matching/controller isolation checks; 576 scenarios match the pre-refactor scoring results. The last frontend run passed 13 tests and the production build; frontend source did not change in the latest increment. The sandbox denies outbound proxy/Docker-socket access and Vite binding to 127.0.0.1:3000. Network-enabled validation/push and source-publication attempts were interrupted without a confirmed execution result. Runtime network policy reports unrestricted access, which does not establish command-sandbox access. This is an execution/publication blocker, not evidence that provider credentials are missing.
+Native Mac/Docker Desktop and actual Ollama/Qwen quality still need acceptance on the user's machine. Resolve/rotate any real credentials formerly tracked in repository history. Keep current CI green and review the remaining [implementation checklist](docs/IMPLEMENTATION_CHECKLIST.md) and [security gates](SECURITY.md) before merging.
 
-To unblock: provide an execution context that can reach the configured Git proxy, the local Docker daemon and local application ports. Then verify V1–V10 fresh/upgrade migrations, run all backend/full-stack/browser and dependency checks, push without force and inspect current CI. Preserve the local commits; do not reset to the remote branch. The November 15 release target remains contingent on this gate, native Mac/model acceptance and the existing security/provider constraints.
+Durable ingestion scheduling, broader geographic/mandatory-qualification reasoning and free-form factual AI rewriting remain incomplete. Real submissions require provider/employer authorization, credentials, approved payloads, eligibility rules and verified receipts; they remain disabled. Manual completions are explicitly user-reported. OCR, formatted PDF export and public-hosting hardening are tracked separately in the backlog. Nothing has been publicly hosted; repository visibility has not changed.
 
-A subsequent local matching increment normalizes common skill spellings and clarifies mention-versus-proficiency wording; its parser/matcher and frontend checks pass offline. A [Git bundle handoff](docs/OFFLINE_HANDOFF.md) is available as an optional route to a working Mac environment. This is a transfer option, not proof that the bundle has been downloaded, integrated, published or tested there.
+The November 15 target remains conditional on the remaining work and external acceptance. Passing Linux/mocked-model checks does not establish real-model or native Mac acceptance.
 
-The latest local matching refactor prepares immutable data once per request and corrects multiline senior-title detection. It introduces no shared user cache, schema change or scoring-weight change. Fresh access probes on November 11 confirmed the same command-sandbox failures. The November 15 target cannot be confirmed while integration/publication and external acceptance are unresolved.
+## Managed execution and publication
+
+The command sandbox still denies the Git proxy, Docker socket and local application-port binding. Those local execution limits do not prevent GitHub connector publication or CI validation: both routes were confirmed working on November 11. Use connector Git-tree/commit/ref operations with exact tree comparison, the current expected head and `force=false` if normal shell Git remains unavailable; preserve local history. Check current GitHub head before every write. Do not keep repeating stalled privileged shell requests or reset the local branch to discard unpublished work.
+
+Users can now pull the feature branch normally; the [offline bundle handoff](docs/OFFLINE_HANDOFF.md) is an optional preservation/recovery route, not required to obtain the published application. Current verification and historical local-only evidence are recorded in [VERIFICATION.md](docs/VERIFICATION.md).

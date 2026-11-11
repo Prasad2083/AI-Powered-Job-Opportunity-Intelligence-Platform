@@ -11,7 +11,7 @@ Baseline: existing development branch `feature/production-workflow-20261027`, PR
 - [x] BCrypt registration, input bounds, JWT signature/expiry validation, disabled-user checks, HTTP 401 behavior.
 - [x] Logout increments a persisted token version and revokes prior sessions. Frontend clears expired sessions.
 - [x] Own-user resume, tailored-document, preferences, manual-job and application access. DTOs avoid password-hash serialization.
-- [x] PostgreSQL 16 fresh migrations and Hibernate validation; historical V3→latest upgrade preserves resume text. V4–V9 are additive.
+- [x] PostgreSQL 16 fresh migrations and Hibernate validation; historical V3→latest upgrade preserves resume text. V4–V10 are additive.
 - [x] No automatic seed resumes, schema dropping, mock submission success, or hard-coded runtime JWT default.
 - [ ] Resolve/rotate any credentials formerly stored in repository history; current tree excludes `.env` and logs.
 - [ ] Production abuse controls (distributed throttling, password recovery, TLS/cookie/session hardening) before public exposure. Current local launcher binds to loopback.
@@ -40,13 +40,13 @@ Baseline: existing development branch `feature/production-workflow-20261027`, PR
 - [x] Separate location and source-type filters, a recently-seen public-feed option and 20-row job paging; filters reset the page safely.
 - [x] Frontend filtering by title/company/location; configurable role/location ranking preferences with Toronto/GTA/remote Canada/hybrid defaults.
 - [x] Deterministic explained ranking: skill evidence, resume text, title preferences, seniority keywords, explicit experience-year mentions and location keywords.
-- [x] Matching prepares immutable resume/preferences/text vectors once per request; local tests cover repeated/concurrent calls and user isolation, with 576 pre-refactor parity scenarios. No shared user cache or measured latency claim. Current integration/publication gates remain pending.
+- [x] Matching prepares immutable resume/preferences/text vectors once per request; local tests cover repeated/concurrent calls and user isolation, with 576 pre-refactor parity scenarios. No shared user cache or measured latency claim. Published source has passed CI integration checks; native/model acceptance remains pending.
 - [x] Known skill spellings normalize to canonical names (C#, REST-Assured, Postgres, K8s); Unicode whitespace, boundaries and locale behavior have offline parser/matcher tests. UI labels detections as text mentions, not proof of proficiency.
 - [x] Missing evidence is labeled for review, not asserted as a genuine skill deficiency. Date ranges are not invented into experience totals.
 - [x] Live HTTP checks of default boards, including Toronto listings in both selected Lever feeds.
 - [ ] Semantic verification of mandatory qualifications, overlapping work-history calculations, geographic/work-authorization eligibility and embeddings. All eligibility remains subject to human review.
 - [x] Per-employer feed retry deferral with bounded exponential backoff, HTTP 429/503 Retry-After seconds/date support, success reset and independent healthy-feed refresh. Deferral never marks a source checked or archives its listings. Basic backoff was initially tested in memory; persistent-state verification is tracked below.
-- [ ] Persistent provider retry state is implemented with additive V10 migration, pending real PostgreSQL/CI verification in this increment.
+- [x] Persistent provider retry state with additive V10 migration: real PostgreSQL/CI verifies store recreation, concurrent failure updates, exact/extreme deadlines and success reset.
 - [ ] Durable queued ingestion, large-dataset paging/index tuning and ingestion operational metrics.
 
 ## Tailoring and applications
@@ -56,7 +56,7 @@ Baseline: existing development branch `feature/production-workflow-20261027`, PR
 - [x] Local Ollama `qwen3:4b` protocol; no paid AI dependency.
 - [x] Source-constrained generation: model proposes line references; server validates them and emits only original excerpts plus the unchanged original text. Arbitrary model prose never becomes a professional claim.
 - [x] Editable drafts, explicit document approval, immutable saved versions and TXT downloads. Editing clears prior approval in the UI.
-- [ ] Archived-listing draft preservation is implemented and covered by local controller tests; current PostgreSQL REST/browser/CI acceptance and publication remain pending. Existing owned provenance is required; new generation and unanchored saves still require an active visible job.
+- [x] Archived-listing draft preservation is published and verified by controller, PostgreSQL REST and current CI checks. Existing owned provenance is required; new generation and unanchored saves still require an active visible job.
 - [x] Official application links and explicitly confirmed manual completion; `USER_REPORTED_*`, never provider-confirmed status.
 - [x] Duplicate manual record prevention under a per-user database lock; history, readable status labels, status filtering and editable follow-up notes.
 - [x] In-page manual completion requires a confirmation checkbox; it never claims provider confirmation.

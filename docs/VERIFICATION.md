@@ -2,6 +2,16 @@
 
 Environment: managed Linux cloud workspace, Java 21 JDK, Maven 3.9.9, PostgreSQL 16 Docker containers, Node/npm and Chromium. Date: 2026-10-28. Repository baseline `9ada487`; see git history for the resulting implementation commits.
 
+## Published source and CI acceptance (2026-11-11 UTC)
+
+Published application snapshot **`5e357dc`** to `feature/production-workflow-20261027` without a force update. Its Git tree SHA exactly matched the tested local source. Original local commits were retained and reconciled by merging identical trees; no source changes or user work were discarded.
+
+[GitHub Actions run 42945174233](https://github.com/Prasad2083/AI-Powered-Job-Opportunity-Intelligence-Platform/actions/runs/42945174233) passed backend, frontend, full-stack browser and shell jobs. Job logs confirm **67 backend tests passed** (zero failures/errors/skips), including **10 PostgreSQL/REST integration tests**. These executed the V10 retry-state persistence/concurrency/extreme-deadline checks and archived-listing provenance workflow that were previously pending. Fresh V1–V10 migrations and a historical V3→V10 upgrade passed, preserving existing resume text.
+
+Frontend logs confirm **13 tests passed**, production build and npm audit **0 vulnerabilities**. Full-stack browser logs confirm **8 tests passed**, using the real backend and isolated PostgreSQL with only Ollama mocked in that flow; other browser scenarios use explicit API fixtures. OSV scanned **160 dependencies**, with **0 unreviewed/actionable advisories** and the same two retained Spring MVC applicability reviews. Launcher syntax passed. No live application submission was attempted.
+
+The local shell's Docker/proxy/port restrictions remain, but the GitHub connector can publish reviewed source and CI provides the previously blocked integration checks. The dated local sections below are historical evidence; their then-pending publication/CI statements are superseded by this section for the code in `5e357dc`. Real Mac/Qwen acceptance, historical credential rotation and remaining release gates are not superseded or claimed complete.
+
 ## Per-request matching preparation (local, 2026-11-11 UTC)
 
 The Matches controller now prepares immutable resume skill mentions, text vectors, explicit years, seniority keywords and role/location preferences once per authenticated request. Each job still gets a fresh result. Nothing is stored in a shared user cache, and no API shape, scoring weights, database schema or dependencies changed. Seniority detection also handles titles containing line breaks.
@@ -58,8 +68,8 @@ Executed for this increment: Java 21 `mvn verify` **32 tests passed**, including
 
 | Check | Evidence and practical limit |
 | --- | --- |
-| Backend build and tests | `mvn -B -ntp verify`: 42 tests, no failures/errors/skips in the 2026-11-09 UTC feed retry run. Security/REST tests use the real Spring filter chain and PostgreSQL 16. |
-| Fresh schema | Flyway V1–V9 migration followed by Hibernate `validate`. No historical migration was edited. |
+| Backend build and tests | `mvn -B -ntp clean verify`: 67 tests, no failures/errors/skips in CI on published snapshot 5e357dc (2026-11-11 UTC). Security/REST tests use the real Spring filter chain and PostgreSQL 16. |
+| Fresh schema | Flyway V1–V10 migration followed by Hibernate `validate`. No historical migration was edited. |
 | Historical upgrade | Seed V3 schema with existing user/resume text, migrate to latest, validate checksums, verify original text retained and previously unstored file bytes remain null. |
 | Authentication/isolation | Registration/login; malformed and wrong-signature JWTs; revoked sessions; disabled login; foreign resume edit/read/download/primary access; private manual jobs and saved documents; isolated history; duplicate completion rejection. |
 | Resume extraction | Generated real PDF and DOCX fixtures plus TXT uploads; malformed/unsupported/empty files; original-byte preservation. Saved Word exports are reopened with POI to verify Unicode text and facts; invalid export formats and foreign-user downloads are rejected. No OCR claim. |

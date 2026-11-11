@@ -1,6 +1,8 @@
 # Verify and publish the preserved local commits
 
-Use this fallback only while the managed execution environment cannot run Docker/network/browser checks or publish source. It does not waive release gates. The last confirmed remote development head is `8d295ed`; local work is preserved on `feature/production-workflow-20261027`.
+The application source is now published as 5e357dc and has passed CI. Normally, pull the existing feature branch and follow MAC_LOCAL_SETUP.md; the bundle is not required to obtain those features.
+
+Use this fallback only for private preservation/recovery when a normal Git transfer is unavailable. It does not waive release gates. The bundles retain the earlier 8d295ed prerequisite; local history is preserved on feature/production-workflow-20261027 and a preservation branch. Never assume a bundle is newer than the current remote head; inspect both before importing.
 
 A Git bundle is prepared in the managed workspace at `/workspace/shared/downloads/JobPulse-pending-commits.bundle`. Commit-named copies are retained alongside it; use `git bundle list-heads /path/to/bundle` to identify the included branch head. It contains unpublished commits and requires the existing `8d295ed` history; it is not a clone of the complete repository, model weights or a database export. Transfer it privately to an existing checkout when workspace file download is available. If it cannot be downloaded, leave the local commits intact and restore execution access instead; no successful transfer is assumed.
 
