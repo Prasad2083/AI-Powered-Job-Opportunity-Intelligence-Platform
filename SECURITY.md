@@ -22,6 +22,10 @@ Task creation checks the user’s primary resume and job visibility. Task list, 
 
 New refresh endpoints require authentication. Employer-feed run status is intentionally shared across authenticated users, matching the existing shared public-feed listings. Reports contain counts/source identifiers and controlled messages; no user identity, resume snapshot or private manual description is stored in the queue. Requests coalesce under a database lock and refresh cooldown rather than launching one provider request per browser. Existing feed-level persistent retry deadlines remain authoritative. Interrupted runs are visible failures; partial updates are explicitly disclosed. Operational report retention and public-service abuse controls remain incomplete.
 
+## Matching evidence review (2026-11-11)
+
+Narrow explicit-denial patterns now withhold skill credit rather than promoting every dictionary mention. Contradictory mentions are flagged for review; no qualification gap or verified proficiency is asserted. Analysis uses the owned resume already loaded by the authenticated controller, retains no shared user cache, and does not mutate originals or editable content. It does not sanitize text similarity or implement complete semantic/mandatory eligibility; the documented review limits still apply.
+
 ## Dependency evidence
 
 The original resolved Maven scan had 36 affected packages. Spring Boot 3.5.16 plus supported patch overrides for Tomcat, PostgreSQL JDBC, Jackson, Log4j API and Commons Lang, updated PDFBox/POI/Commons IO, and removal of unused WebFlux reduced actionable findings to zero in the completed OSV scan. Frontend npm audit reports zero after Vite/test-tool upgrades.

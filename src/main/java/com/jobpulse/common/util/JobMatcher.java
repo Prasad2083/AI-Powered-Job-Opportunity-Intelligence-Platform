@@ -18,6 +18,7 @@ public final class JobMatcher {
     /** Build once for an authenticated request; all fields are immutable and user-specific. */
     public static final class RankingContext {
         private final Set<String> evidenced;
+        private final Set<String> contextReview;
         private final TextMatcher.PreparedText resumeText;
         private final List<TextMatcher.PreparedText> roleTexts;
         private final List<String> locationPreferences;
@@ -26,7 +27,10 @@ public final class JobMatcher {
 
         private RankingContext(String resume,String roles,String locations) {
             String cv=resume==null?"":resume;
-            evidenced=Set.copyOf(ResumeParser.extractSkills(cv).keySet());
+            contextReview=ResumeParser.explicitlyNegatedSkills(cv);
+            var mentions=new HashSet<>(ResumeParser.extractSkills(cv).keySet());
+            mentions.removeAll(contextReview);
+            evidenced=Set.copyOf(mentions);
             resumeText=TextMatcher.prepare(cv);
             roleTexts=roles==null?List.of():Arrays.stream(roles.split(",")).filter(role->!role.isBlank()).map(TextMatcher::prepare).toList();
             locationPreferences=locations==null?List.of():Arrays.stream(locations.split(",")).map(JobMatcher::normalizedLocation).filter(place->!place.isEmpty()).toList();
@@ -54,8 +58,10 @@ public final class JobMatcher {
             double experience=requiredYears==null || requiredYears==0?1:evidencedYears==null?0:Math.min(1,evidencedYears/requiredYears);
             double score=100*(.45*skills+.15*text+.15*titleScore+.1*seniority+.1*experience+.05*(locationMatch?1:0));
             Map<String,Object> result=new LinkedHashMap<>(Map.of("score",Math.round(score*100.0)/100.0,"matchedSkills",matched,"skillsNotEvidenced",missing,
-                "explanation","Ranking weights: skills 45%, resume text 15%, title/preferences 15%, seniority keywords 10%, explicit years 10%, location keywords 5%. Skills are dictionary-based text mentions, including known aliases, not proof of proficiency. Negation and qualification context need review. Skills not detected are review prompts, not proven gaps. Years use explicit experience statements and the lower bound of ranges, not verified totals; mandatory requirements and work authorization require review.",
+                "explanation","Ranking weights: skills 45%, resume text 15%, title/preferences 15%, seniority keywords 10%, explicit years 10%, location keywords 5%. Skills are dictionary-based text mentions, including known aliases, not proof of proficiency. Limited explicit-denial patterns withhold skill credit, even when another mention conflicts; these skills need context review. Other negation and qualification context still need review. Skills not credited are review prompts, not proven gaps. Years use explicit experience statements and the lower bound of ranges, not verified totals; mandatory requirements and work authorization require review.",
                 "seniorityReviewRequired",senior&&!seniorEvidence,"locationPreferenceMatched",locationMatch));
+            var review=new TreeSet<>(contextReview);review.retainAll(required);
+            result.put("skillsRequiringContextReview",review);
             result.put("requiredYearsMentioned",requiredYears);result.put("resumeYearsMentioned",evidencedYears);
             result.put("experienceReviewRequired",requiredYears!=null && requiredYears>0 && (evidencedYears==null || evidencedYears<requiredYears));
             return result;

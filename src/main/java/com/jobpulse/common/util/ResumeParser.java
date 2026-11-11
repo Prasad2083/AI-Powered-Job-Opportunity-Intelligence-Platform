@@ -17,6 +17,8 @@ public final class ResumeParser {
         "kubernetes", List.of("k8s")
     );
 
+    private static final Pattern EXPLICIT_DENIAL;
+
     static {
         // Languages
         SKILL_CATEGORIES.put("java", "Languages");
@@ -68,6 +70,31 @@ public final class ResumeParser {
             SKILL_PATTERNS.put(skill, Pattern.compile("(?<![\\p{L}\\p{N}_])(?:" + alternatives + ")(?![\\p{L}\\p{N}_])",
                 Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE | Pattern.UNICODE_CHARACTER_CLASS));
         }
+
+        // Deliberately narrow: an explicit denial followed by known skill names.
+        // Longest-first avoids treating Spring Boot as just Spring in a list.
+        var names = new HashSet<String>(SKILL_CATEGORIES.keySet());
+        ALIASES.values().forEach(names::addAll);
+        String skill = names.stream().sorted(Comparator.comparingInt(String::length).reversed())
+            .map(ResumeParser::phrasePattern).collect(java.util.stream.Collectors.joining("|"));
+        skill = "(?<![\\p{L}\\p{N}_])(?:" + skill + ")(?![\\p{L}\\p{N}_])";
+        String separator = "[ \\t]*(?:,[ \\t]*(?:(?:and|or)[ \\t]+)?|(?:and|or)[ \\t]+|[/&][ \\t]*)";
+        EXPLICIT_DENIAL = Pattern.compile(
+            "(?<![\\p{L}\\p{N}_])(?:no[ \\t]+experience[ \\t]+(?:with|in)|"
+            + "(?:do[ \\t]+not|don't|don’t)[ \\t]+have[ \\t]+experience[ \\t]+(?:with|in)|"
+            + "never[ \\t]+(?:used|worked[ \\t]+with)|unfamiliar[ \\t]+with|"
+            + "not[ \\t]+(?:experienced|proficient|familiar|skilled)[ \\t]+(?:with|in))"
+            + "[ \\t]+(?<skills>" + skill + "(?:" + separator + skill + ")*)",
+            Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE | Pattern.UNICODE_CHARACTER_CLASS);
+    }
+
+    /** Explicit denials only, not a semantic qualification or proficiency assessment. */
+    public static Set<String> explicitlyNegatedSkills(String text) {
+        if (text == null || text.isEmpty()) return Set.of();
+        var found = new TreeSet<String>();
+        var matcher = EXPLICIT_DENIAL.matcher(text);
+        while (matcher.find()) found.addAll(extractSkills(matcher.group("skills")).keySet());
+        return Set.copyOf(found);
     }
 
     private ResumeParser() {}

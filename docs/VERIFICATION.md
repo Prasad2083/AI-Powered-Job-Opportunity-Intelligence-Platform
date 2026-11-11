@@ -2,6 +2,12 @@
 
 Environment: managed Linux cloud workspace, Java 21 JDK, Maven 3.9.9, PostgreSQL 16 Docker containers, Node/npm and Chromium. Date: 2026-10-28. Repository baseline `9ada487`; see git history for the resulting implementation commits.
 
+## Explicit skill denial increment (2026-11-11; CI pending)
+
+Recognized resume denials now withhold skill credit, including contradictory mentions, and appear in an additive `skillsRequiringContextReview` field and the Matches explanation. Existing API detection remains dictionary-based; no semantic eligibility or whole-score negation filtering is claimed. Original resume text/bytes, scoring weights and migrations are unchanged. See [limitations](SKILL_EVIDENCE.md).
+
+Executed locally: **64 non-PostgreSQL backend tests**, **17 frontend tests**, production frontend build and whitespace checks passed. New PostgreSQL REST/original-preservation and browser review assertions are included for CI; not claimed executed locally. Native Mac/model and historical credential gates remain open.
+
 ## Background discovery acceptance (2026-11-11 UTC)
 
 Published application increment **`68dac00`** adds V11 with a single shared employer-refresh queue and operational reports. Manual/scheduled requests coalesce; active work returns 202, recent terminal results return 200. A separate worker/heartbeat records interrupted runs without fabricating success; late results cannot replace failures. Jobs restores and polls status while preserving private manual-entry edits. Existing V1–V10 and provider backoff/archival rules remain unchanged. Workflow/documentation follow-up **`5c5795f`** retains exactly the same application source.

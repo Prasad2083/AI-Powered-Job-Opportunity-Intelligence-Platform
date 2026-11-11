@@ -3,6 +3,25 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 import java.util.Set;
 class JobMatcherTest {
+    @Test void explicitResumeDenialsNeverEarnSkillCreditEvenWithContradictoryMentions() {
+        var context=JobMatcher.prepare("Java engineer. No experience with Java and Postgres. Built Selenium tests.",null,null);
+        var result=context.evaluate("Engineer","Java, PostgreSQL and Selenium",null);
+        assertEquals(Set.of("selenium"),result.get("matchedSkills"));
+        assertEquals(Set.of("java","postgresql"),result.get("skillsRequiringContextReview"));
+        assertEquals(Set.of("java","postgresql"),result.get("skillsNotEvidenced"));
+        ((Set<?>)result.get("skillsRequiringContextReview")).clear();
+        assertEquals(Set.of("java"),context.evaluate("Engineer","Java",null).get("skillsRequiringContextReview"));
+        assertEquals(Set.of(),context.evaluate("Engineer","Python",null).get("skillsRequiringContextReview"));
+    }
+    @Test void denialChangesOnlySkillEvidenceAndNeverClaimsVerifiedEligibility() {
+        var positive=JobMatcher.evaluate("Java", "Engineer","Java",null,null,null);
+        var negative=JobMatcher.evaluate("No experience with Java", "Engineer","Java",null,null,null);
+        assertTrue((double)negative.get("score") < (double)positive.get("score"));
+        assertTrue(negative.get("explanation").toString().contains("not proof of proficiency"));
+        assertEquals(Set.of("java"),positive.get("matchedSkills"));
+        assertEquals(Set.of(),positive.get("skillsRequiringContextReview"));
+    }
+
     @Test void explicitYearsAreNotInferredFromDates() {
         var result=JobMatcher.evaluate("Java engineer, 2020-2025","Engineer","Requires 5+ years experience","Toronto","Engineer","Toronto");
         assertEquals(5.0,result.get("requiredYearsMentioned"));assertNull(result.get("resumeYearsMentioned"));assertEquals(true,result.get("experienceReviewRequired"));

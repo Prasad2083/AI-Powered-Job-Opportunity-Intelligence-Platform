@@ -70,3 +70,15 @@ it('shows failed tasks and queues a separate task only on explicit retry', async
   await screen.findByText('Queued', { exact: true });
   expect(axios.post).toHaveBeenCalledTimes(1);
 });
+
+it('shows withheld skill credit as a review prompt without calling it a proven gap', async () => {
+  fixtures();
+  const previous = axios.get.getMockImplementation();
+  axios.get.mockImplementation(async url => url.endsWith('/matches') ? { data: [{ jobId: 1, title: 'Engineer', score: 30, matchedSkills: ['selenium'], skillsNotEvidenced: ['java'], skillsRequiringContextReview: ['java'] }] } : previous(url));
+  render(<MatchesPage token="test-token" />);
+  await screen.findByRole('heading', { name: 'Engineer', exact: true });
+  fireEvent.click(screen.getByText('Why this match?'));
+  expect(screen.getByText('Explicit denial or conflicting skill mentions — review required')).toBeTruthy();
+  expect(screen.getByText('Job skills not credited')).toBeTruthy();
+  expect(screen.getByText('Job skills mentioned in resume').nextElementSibling.textContent).toBe('selenium');
+});

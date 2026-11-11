@@ -13,7 +13,7 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
       if (path === '/api/jobs') data = jobs;
       if (path === '/api/jobs/ingestion') data = { id: 1, status: 'SUCCEEDED', report: { checkedSources: [], saved: 0, archived: 0, failed: 0, sourceFailures: {} } };
       if (path === '/api/resumes') data = [{ id: 1, filename: 'sample-resume.txt', active: true }];
-      if (path === '/api/matches') data = [{ jobId: 1, title: 'Quality Engineer 01', company: 'Example Studio', score: 74.2, source: 'MANUAL', matchedSkills: ['java', 'selenium', 'junit'], skillsNotEvidenced: ['playwright'], explanation: 'Illustrative skill evidence. Review requirements before using this ranking.', locationPreferenceMatched: true }];
+      if (path === '/api/matches') data = [{ jobId: 1, title: 'Quality Engineer 01', company: 'Example Studio', score: 74.2, source: 'MANUAL', matchedSkills: ['java', 'selenium', 'junit'], skillsNotEvidenced: ['playwright'], skillsRequiringContextReview: ['playwright'], explanation: 'Illustrative skill evidence. Review requirements before using this ranking.', locationPreferenceMatched: true }];
       if (path === '/api/tailoring/tasks') data = [{ id: 7, jobId: 1, resumeId: 1, status: 'SUCCEEDED' }];
       if (path === '/api/tailoring/documents') data = [{ id: 1, jobId: 1, resumeId: 1, content: 'Sample candidate — demonstration text only.', approved: false }];
       if (path === '/api/applications') data = [record];
@@ -41,6 +41,8 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
     await noOverflow(); await page.screenshot({ path: testInfo.outputPath('resumes.png'), fullPage: viewport.width < 500 });
     await page.getByRole('button', { name: 'Matches', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Quality Engineer 01', exact: true })).toBeVisible();
+    await page.getByText('Why this match?', { exact: true }).click();
+    await expect(page.getByText('Explicit denial or conflicting skill mentions — review required')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Open draft task #7', exact: true })).toBeVisible();
     await noOverflow(); await page.screenshot({ path: testInfo.outputPath('matches.png'), fullPage: viewport.width < 500 });
     await page.getByRole('button', { name: 'Applications', exact: true }).click();

@@ -45,6 +45,7 @@ Baseline: existing development branch `feature/production-workflow-20261027`, PR
 - [x] Known skill spellings normalize to canonical names (C#, REST-Assured, Postgres, K8s); Unicode whitespace, boundaries and locale behavior have offline parser/matcher tests. UI labels detections as text mentions, not proof of proficiency.
 - [x] Missing evidence is labeled for review, not asserted as a genuine skill deficiency. Date ranges are not invented into experience totals.
 - [x] Live HTTP checks of default boards, including Toronto listings in both selected Lever feeds.
+- [ ] Explicit skill-denial credit fix implemented with narrow English patterns, conflict withholding and visible review prompts; local tests passed, PostgreSQL/browser CI acceptance pending. See [skill evidence](SKILL_EVIDENCE.md).
 - [ ] Semantic verification of mandatory qualifications, overlapping work-history calculations, geographic/work-authorization eligibility and embeddings. All eligibility remains subject to human review.
 - [x] Per-employer feed retry deferral with bounded exponential backoff, HTTP 429/503 Retry-After seconds/date support, success reset and independent healthy-feed refresh. Deferral never marks a source checked or archives its listings. Basic backoff was initially tested in memory; persistent-state verification is tracked below.
 - [x] Persistent provider retry state with additive V10 migration: real PostgreSQL/CI verifies store recreation, concurrent failure updates, exact/extreme deadlines and success reset.

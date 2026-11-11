@@ -20,7 +20,7 @@ test('registration through manual application history against real API and Postg
   await page.reload();
   await expect(page.getByText('Discovery completed',{exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Resumes',exact:true}).click();
-  const original='Senior Quality Engineer with Java and Selenium\nExample Employer, 2020-2025\nBuilt JUnit tests for Spring Boot services.';
+  const original='Senior Quality Engineer with Java and Selenium\nExample Employer, 2020-2025\nBuilt JUnit tests for Spring Boot services.\nNo experience with Playwright.';
   await page.locator('input[type=file]').setInputFiles({name:'browser-cv.txt',mimeType:'text/plain',buffer:Buffer.from(original)});
   await page.getByRole('button',{name:'Upload Resume',exact:true}).click();
   await expect(page.getByText('browser-cv.txt')).toBeVisible();
@@ -29,7 +29,7 @@ test('registration through manual application history against real API and Postg
   await page.getByPlaceholder('Job title',{exact:true}).fill('Senior Quality Engineer');
   await page.getByPlaceholder('Employer',{exact:true}).fill('E2E fixture employer');
   await page.getByPlaceholder('Location',{exact:true}).fill('Toronto');
-  await page.getByPlaceholder('Paste the full job description').fill('Senior Quality Engineer using Java, Selenium, JUnit and Spring Boot. This is an explicit test fixture, not a live vacancy.');
+  await page.getByPlaceholder('Paste the full job description').fill('Senior Quality Engineer using Java, Selenium, Playwright, JUnit and Spring Boot. This is an explicit test fixture, not a live vacancy.');
   await page.getByRole('button',{name:'Save job for matching'}).click();
   await expect(page.getByText('Manually entered — unverified')).toBeVisible();
   await page.getByRole('button',{name:'Read job: Senior Quality Engineer'}).click();
@@ -37,6 +37,9 @@ test('registration through manual application history against real API and Postg
   await expect(page.getByText('Manually entered — not independently verified.')).toBeVisible();
   await page.getByRole('button',{name:'Close job details'}).click();
   await page.getByRole('button',{name:'Matches',exact:true}).click();
+  await page.getByText('Why this match?',{exact:true}).click();
+  await expect(page.getByText('Explicit denial or conflicting skill mentions — review required')).toBeVisible();
+  await expect(page.locator('dt').filter({hasText:'Explicit denial or conflicting skill mentions'}).locator('..')).toContainText('playwright');
   await page.getByRole('button',{name:'Generate truthful tailored draft'}).click();
   await expect(page.getByText('Ready for review',{exact:true})).toBeVisible();
   await page.reload();

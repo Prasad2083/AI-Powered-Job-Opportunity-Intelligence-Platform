@@ -103,6 +103,29 @@ class DatabaseStartupTest {
         } finally { database.update("DELETE FROM ingestion_runs"); }
     }
 
+    @Test void matchingWithholdsExplicitlyDeniedSkillsWithoutMutatingTheOwnedResume() throws Exception {
+        String token=registerAndLogin("skill-review-test");
+        String original="Java engineer. No experience with Java. Built Selenium tests.";
+        var file=new org.springframework.mock.web.MockMultipartFile("file","review.txt","text/plain",original.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        var uploaded=mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/resumes/upload").file(file).header("Authorization","Bearer "+token))
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk()).andReturn();
+        long resumeId=mapper.readTree(uploaded.getResponse().getContentAsString()).path("id").asLong();
+        var posted=mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/jobs/manual").header("Authorization","Bearer "+token)
+            .contentType("application/json").content(mapper.writeValueAsString(java.util.Map.of("title","Review fixture engineer","company","Explicit test fixture","description","Engineer using Java and Selenium. This is an unverified private test description."))))
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk()).andReturn();
+        long jobId=mapper.readTree(posted.getResponse().getContentAsString()).path("id").asLong();
+        var matches=mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/matches").header("Authorization","Bearer "+token))
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk()).andReturn();
+        var row=java.util.stream.StreamSupport.stream(mapper.readTree(matches.getResponse().getContentAsString()).spliterator(),false)
+            .filter(value->value.path("jobId").asLong()==jobId).findFirst().orElseThrow();
+        org.junit.jupiter.api.Assertions.assertEquals(java.util.List.of("selenium"),mapper.convertValue(row.path("matchedSkills"),java.util.List.class));
+        org.junit.jupiter.api.Assertions.assertEquals(java.util.List.of("java"),mapper.convertValue(row.path("skillsRequiringContextReview"),java.util.List.class));
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/resumes/"+resumeId+"/original").header("Authorization","Bearer "+token))
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().bytes(file.getBytes()));
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/resumes/"+resumeId+"/text").header("Authorization","Bearer "+token))
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.text").value(original));
+    }
+
     @Test void migrationsAndHibernateValidationStart() {}
 
     @Test void logoutRevokesSignedTokensAndDisabledUsersCannotLogin() throws Exception {

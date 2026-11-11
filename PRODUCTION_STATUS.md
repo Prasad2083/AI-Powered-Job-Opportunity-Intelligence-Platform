@@ -2,6 +2,10 @@
 
 Published application increment **`68dac00`** and workflow follow-up **`5c5795f`** to the existing feature branch on November 11 without force. Published trees exactly matched local trees; original granular development commits remain preserved in merged local history and preservation branches. No existing work, historical migration or original resume was discarded.
 
+## Current matching increment (CI pending)
+
+A narrow explicit-denial fix withholds skill-component credit for statements such as “No experience with Java”, including conflicting mentions elsewhere, and exposes a review prompt. Local **64 backend** and **17 frontend** tests plus production build passed; PostgreSQL/browser CI acceptance is pending. This is not full semantic eligibility or free-form factual rewriting. See [skill evidence](docs/SKILL_EVIDENCE.md).
+
 ## Current verified candidate
 
 [CI run 43035912511](https://github.com/Prasad2083/AI-Powered-Job-Opportunity-Intelligence-Platform/actions/runs/43035912511) passed all four jobs on `5c5795f`:

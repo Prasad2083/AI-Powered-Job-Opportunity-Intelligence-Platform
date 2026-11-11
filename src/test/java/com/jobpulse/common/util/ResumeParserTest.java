@@ -6,6 +6,21 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ResumeParserTest {
+    @Test void explicitDenialsRecognizeKnownListsAndAliases() {
+        assertEquals(Set.of("java","selenium","postgresql"),ResumeParser.explicitlyNegatedSkills("No experience with Java, Selenium or Postgres."));
+        assertEquals(Set.of("csharp","rest assured"),ResumeParser.explicitlyNegatedSkills("I don’t have experience in C# and REST-Assured."));
+        assertEquals(Set.of("spring","spring boot","kubernetes"),ResumeParser.explicitlyNegatedSkills("Never used Spring Boot / K8s."));
+        for(String prefix:new String[]{"not experienced in ","not proficient with ","unfamiliar with ","never worked with ","do not have experience with "})
+            assertEquals(Set.of("java"),ResumeParser.explicitlyNegatedSkills(prefix+"Java"),prefix);
+    }
+    @Test void denialScopeDoesNotCrossSentencesOrUnrelatedExperience() {
+        assertEquals(Set.of("java"),ResumeParser.explicitlyNegatedSkills("No experience with Java. Built Selenium tests."));
+        assertEquals(Set.of("java"),ResumeParser.explicitlyNegatedSkills("No experience with Java, but built Selenium tests."));
+        assertEquals(Set.of("java"),ResumeParser.explicitlyNegatedSkills("No experience with Java\nSelenium"));
+        assertTrue(ResumeParser.explicitlyNegatedSkills("Not only Java but also Selenium. No production incidents with Java. JavaScript and NoSQL.").isEmpty());
+        assertTrue(ResumeParser.explicitlyNegatedSkills(null).isEmpty());
+    }
+
     @Test void recognizesPunctuationEndedCSharpWithoutMatchingEmbeddedWords() {
         for(String spelling:new String[]{"C#", "C Sharp", "c-sharp", "CSharp", "C#/.NET"})
             assertTrue(ResumeParser.extractSkills(spelling).containsKey("csharp"),spelling);
