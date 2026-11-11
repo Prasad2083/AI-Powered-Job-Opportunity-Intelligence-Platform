@@ -2,13 +2,14 @@ import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { API_BASE, apiError } from '../lib/api';
 import JobDetails from '../components/JobDetails';
+import useIngestionRun from '../lib/useIngestionRun';
 import { PageHeader, Notice, EmptyState, Panel } from '../components/Workspace';
 
 const blank = { title: '', company: '', location: '', applyUrl: '', description: '' };
 export default function JobsPage({ token }) {
   const [jobs, setJobs] = useState([]), [loading, setLoading] = useState(true), [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState(''), [location, setLocation] = useState(''), [source, setSource] = useState('all'), [fresh, setFresh] = useState(false), [page, setPage] = useState(1);
-  const [manual, setManual] = useState(blank), [showManual, setShowManual] = useState(false), [ingestion, setIngestion] = useState(null), [selected, setSelected] = useState(null), [error, setError] = useState('');
+  const [manual, setManual] = useState(blank), [showManual, setShowManual] = useState(false), [selected, setSelected] = useState(null), [error, setError] = useState('');
   const headers = { Authorization: `Bearer ${token}` };
   const load = async () => {
     setLoading(true); setError('');
@@ -24,11 +25,9 @@ export default function JobsPage({ token }) {
     return matchesText && String(job.location || '').toLowerCase().includes(location.toLowerCase()) && (source === 'all' || source === category) && (!fresh || (category === 'public' && !job.stale));
   }), [jobs, filter, location, source, fresh]);
   const pages = Math.max(1, Math.ceil(filtered.length / 20)), current = Math.min(page, pages);
-  const ingest = async () => {
-    setLoading(true); setError('');
-    try { const result = await axios.post(`${API_BASE}/jobs/ingest`, {}, { headers }); setIngestion(result.data); await load(); }
-    catch (e) { setError(apiError(e, 'Job discovery could not finish. Try again shortly.')); setLoading(false); }
-  };
+  const discovery = useIngestionRun(token, load);
+  const run = discovery.run;
+  const report = run?.report;
   const saveManual = async event => {
     event.preventDefault(); setSaving(true); setError('');
     try { await axios.post(`${API_BASE}/jobs/manual`, manual, { headers }); setManual(blank); setShowManual(false); await load(); }
@@ -36,9 +35,10 @@ export default function JobsPage({ token }) {
     finally { setSaving(false); }
   };
   return <div className="wp-page">
-    <PageHeader eyebrow="Discover with direction" title="Jobs" description="Find the opportunities worth a closer look. Bring your own descriptions, or explore public employer listings."><button className="wp-button-primary" onClick={ingest} disabled={loading}>{loading ? 'Searching…' : 'Find jobs'}</button><button onClick={load} disabled={loading}>Refresh</button><button onClick={() => setShowManual(!showManual)}>{showManual ? 'Cancel pasted job' : 'Paste a job description'}</button></PageHeader>
+    <PageHeader eyebrow="Discover with direction" title="Jobs" description="Find the opportunities worth a closer look. Bring your own descriptions, or explore public employer listings."><button className="wp-button-primary" onClick={discovery.request} disabled={loading || discovery.loading || discovery.requesting || discovery.isActive}>{discovery.requesting ? 'Queuing…' : discovery.isActive ? 'Discovery in progress…' : 'Find jobs'}</button><button onClick={load} disabled={loading}>Refresh</button><button onClick={() => setShowManual(!showManual)}>{showManual ? 'Cancel pasted job' : 'Paste a job description'}</button></PageHeader>
     <Notice error>{error}</Notice>
-    {ingestion && <Notice><strong>Discovery refreshed.</strong> {ingestion.checkedSources?.length || 0} feeds checked · {ingestion.saved} listings saved · {ingestion.archived} archived · {ingestion.failed} storage errors.{Object.entries(ingestion.sourceFailures || {}).map(([name, reason]) => <p key={name}>{name}: {reason}</p>)}</Notice>}
+    <Notice error>{discovery.error}</Notice>
+    <Panel title="Discovery status" eyebrow="Public employer feeds"><p className="wp-muted">Feed refreshes run in the background. You can navigate away and return to the recorded status. Recent requests may reuse the last result to avoid checking employers too frequently.</p><button onClick={discovery.refresh} disabled={discovery.requesting}>Refresh discovery status</button>{discovery.loading ? <p role="status">Loading discovery status…</p> : !run ? <p>No discovery run recorded yet.</p> : <><p role="status"><strong>{{ QUEUED: 'Discovery queued', RUNNING: 'Discovery running', SUCCEEDED: 'Discovery completed', PARTIAL: 'Discovery completed with issues', FAILED: 'Discovery failed' }[run.status]}</strong> · Run #{run.id}</p>{run.finishedAt && <p className="wp-muted">Finished: {new Date(run.finishedAt).toLocaleString()}</p>}{run.error && <p>{run.error}</p>}{report && <><p>{report.checkedSources?.length || 0} feeds checked · {report.saved} listings saved · {report.archived} archived · {report.failed} storage errors.</p>{!report.checkedSources?.length && <p>No employer feed was checked successfully in this run. This does not verify any live vacancies.</p>}{Object.entries(report.sourceFailures || {}).map(([name, reason]) => <p key={name}>{name}: {reason}</p>)}</>}</>}</Panel>
     {showManual && <Panel title="Add a job for resume matching" eyebrow="Bring your own opportunity"><p className="wp-muted">Manually entered jobs are not independently verified.</p><form onSubmit={saveManual} className="wp-form"><div className="wp-form-grid">{[['title', 'Job title', true], ['company', 'Employer', true], ['location', 'Location', false], ['applyUrl', 'Official application URL (optional, HTTPS)', false]].map(([key, label, required]) => <label key={key}>{label}<input type={key === 'applyUrl' ? 'url' : 'text'} placeholder={label} required={required} maxLength={key === 'applyUrl' ? 500 : 255} value={manual[key]} onChange={e => setManual({ ...manual, [key]: e.target.value })} /></label>)}</div><label>Full description<textarea required minLength={40} maxLength={40000} rows={7} placeholder="Paste the full job description" value={manual.description} onChange={e => setManual({ ...manual, description: e.target.value })} /></label><div className="wp-actions"><button className="wp-button-primary" disabled={saving}>{saving ? 'Saving…' : 'Save job for matching'}</button></div></form></Panel>}
     <div className="wp-stat-strip"><div><span>In your workspace</span><strong>{loading ? '—' : jobs.length}<small>opportunities</small></strong></div><div><span>After your filters</span><strong>{loading ? '—' : filtered.length}<small>to explore</small></strong></div><div><span>Always your decision</span><p>Review the source.<br />Confirm the current vacancy.</p></div></div>
     <Panel><div className="wp-filter-bar"><label>Search<input aria-label="Filter jobs" placeholder="Filter title, company or location" value={filter} onChange={e => setFilter(e.target.value)} /></label><label>Location<input aria-label="Filter location" placeholder="City, region or remote" value={location} onChange={e => setLocation(e.target.value)} /></label><label>Listing type<select aria-label="Listing type" value={source} onChange={e => setSource(e.target.value)}><option value="all">All listings</option><option value="public">Public employer feeds</option><option value="manual">Manually entered</option><option value="unverified">Other / unverified</option></select></label><label className="wp-checkbox-label"><input type="checkbox" checked={fresh} onChange={e => setFresh(e.target.checked)} /> Recently seen in a public feed</label></div>

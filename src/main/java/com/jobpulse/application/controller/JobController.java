@@ -1,7 +1,7 @@
 package com.jobpulse.application.controller;
 
 import com.jobpulse.application.service.AutoApplyService;
-import com.jobpulse.application.service.JobIngestionService;
+import com.jobpulse.application.service.IngestionRunService;
 import com.jobpulse.domain.entity.Job;
 import com.jobpulse.domain.repository.JobRepository;
 import org.springframework.http.ResponseEntity;
@@ -15,14 +15,14 @@ public class JobController {
 
     private final JobRepository jobRepository;
     private final com.jobpulse.domain.repository.UserRepository users;
-    private final JobIngestionService ingestionService;
+    private final IngestionRunService ingestionRuns;
     private final AutoApplyService autoApplyService;
 
     public JobController(JobRepository jobRepository,
-                         JobIngestionService ingestionService,
+                         IngestionRunService ingestionRuns,
                          AutoApplyService autoApplyService, com.jobpulse.domain.repository.UserRepository users) {
         this.jobRepository = jobRepository;
-        this.ingestionService = ingestionService;
+        this.ingestionRuns = ingestionRuns;
         this.autoApplyService = autoApplyService;
         this.users = users;
     }
@@ -63,9 +63,19 @@ public class JobController {
     }
 
     @PostMapping("/ingest")
-    public ResponseEntity<JobIngestionService.IngestionReport> ingestNow() {
-        return ResponseEntity.ok(ingestionService.ingestJobs());
+    public ResponseEntity<IngestionRunService.Run> ingestNow() {
+        var run=ingestionRuns.request();
+        return (run.status().equals("QUEUED") || run.status().equals("RUNNING")
+            ? ResponseEntity.accepted() : ResponseEntity.ok()).body(run);
     }
+
+    @GetMapping("/ingestion")
+    public ResponseEntity<IngestionRunService.Run> latestIngestion() {
+        return ingestionRuns.latest().map(ResponseEntity::ok).orElseGet(()->ResponseEntity.noContent().build());
+    }
+
+    @GetMapping("/ingestion/{id}")
+    public IngestionRunService.Run ingestion(@PathVariable long id) { return ingestionRuns.get(id); }
 
     @PostMapping("/autoapply")
     public ResponseEntity<String> autoApplyNow() {

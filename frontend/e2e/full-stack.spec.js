@@ -14,6 +14,11 @@ test('registration through manual application history against real API and Postg
   await page.getByPlaceholder('Password').fill('browser-password-123');
   await page.getByRole('button',{name:'Login',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Jobs',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Find jobs',exact:true}).click();
+  await expect(page.getByText('Discovery completed',{exact:true})).toBeVisible();
+  await expect(page.getByText(/This does not verify any live vacancies/)).toBeVisible();
+  await page.reload();
+  await expect(page.getByText('Discovery completed',{exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Resumes',exact:true}).click();
   const original='Senior Quality Engineer with Java and Selenium\nExample Employer, 2020-2025\nBuilt JUnit tests for Spring Boot services.';
   await page.locator('input[type=file]').setInputFiles({name:'browser-cv.txt',mimeType:'text/plain',buffer:Buffer.from(original)});

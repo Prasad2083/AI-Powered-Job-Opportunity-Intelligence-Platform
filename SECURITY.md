@@ -18,6 +18,10 @@ Reviewed 2026-10-28. Current launcher is local-only; do not expose it publicly w
 
 Task creation checks the user’s primary resume and job visibility. Task list, result and cancellation queries always include the authenticated owner. Input snapshots remain private in PostgreSQL and only the validated draft is returned. Source snapshots survive subsequent resume edits and document version saves. Admission is serialized through a database row lock with one active task per user and at most 20 active tasks globally; only one task holds the running slot. Cancellation retains that slot until completion or lease expiry and discards model output. Errors use controlled messages rather than storing arbitrary provider exceptions. Existing disk/backup protection requirements apply to these additional sensitive snapshots; automatic retention/deletion is not yet implemented.
 
+## Background discovery review (2026-11-11 UTC)
+
+New refresh endpoints require authentication. Employer-feed run status is intentionally shared across authenticated users, matching the existing shared public-feed listings. Reports contain counts/source identifiers and controlled messages; no user identity, resume snapshot or private manual description is stored in the queue. Requests coalesce under a database lock and refresh cooldown rather than launching one provider request per browser. Existing feed-level persistent retry deadlines remain authoritative. Interrupted runs are visible failures; partial updates are explicitly disclosed. Operational report retention and public-service abuse controls remain incomplete.
+
 ## Dependency evidence
 
 The original resolved Maven scan had 36 affected packages. Spring Boot 3.5.16 plus supported patch overrides for Tomcat, PostgreSQL JDBC, Jackson, Log4j API and Commons Lang, updated PDFBox/POI/Commons IO, and removal of unused WebFlux reduced actionable findings to zero in the completed OSV scan. Frontend npm audit reports zero after Vite/test-tool upgrades.

@@ -30,7 +30,8 @@ Baseline: existing development branch `feature/production-workflow-20261027`, PR
 
 - [x] Experience statements use range minimums and ignore unrelated company/education year mentions; location phrases use word boundaries and accept reversed Canada/remote labels. These remain ranking hints, not eligibility verification.
 - [x] Durable PostgreSQL tailoring queue: source snapshots, one model task at a time, one active task per user, bounded admission, owner-only status/results, cancellation and expired-lease recovery. Model failures require explicit retry; task history survives browser refresh. No Kafka.
-- [ ] Durable ingestion queue and broader operational metrics; ingestion is still the existing scheduled/manual process.
+- [ ] Durable ingestion queue: PostgreSQL coalescing, restart-safe queued work, interrupted-worker reporting and dashboard status implemented; PostgreSQL/Flyway/browser CI acceptance pending for this increment. See [background discovery](BACKGROUND_DISCOVERY.md).
+- [ ] Broader operational metrics and ingestion run/report retention.
 
 - [x] Configurable multiple-employer Greenhouse and Lever discovery; no single-employer dependency.
 - [x] Lever pagination, complete-response validation, bounded timeouts, per-feed failure isolation, explicit refresh reports and refresh cooldown.

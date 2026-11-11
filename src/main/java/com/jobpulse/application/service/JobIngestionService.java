@@ -7,7 +7,6 @@ import com.jobpulse.domain.repository.JobSourceRepository;
 import com.jobpulse.infrastructure.client.MockJobBoardClient;
 import com.jobpulse.infrastructure.adapter.PublicJobFeedService;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -35,7 +34,6 @@ public class JobIngestionService {
     }
     public record IngestionReport(int fetched,int saved,int archived,int failed,Set<String> checkedSources,Map<String,String> sourceFailures,LocalDateTime checkedAt) {}
 
-    @Scheduled(fixedDelayString="${job.ingest.delay:3600000}")
     public synchronized IngestionReport ingestJobs() {
         if(!enabled) return new IngestionReport(0,0,0,0,Set.of(),Map.of("ingestion","Disabled by configuration"),LocalDateTime.now());
         long now=System.currentTimeMillis();

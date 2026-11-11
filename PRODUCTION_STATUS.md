@@ -19,7 +19,7 @@ Implemented local workflows include secure user-scoped authentication, original-
 
 Native Mac/Docker Desktop and actual Ollama/Qwen quality still need acceptance on the user's machine. Resolve/rotate any real credentials formerly tracked in repository history. Keep current CI green and review the remaining [implementation checklist](docs/IMPLEMENTATION_CHECKLIST.md) and [security gates](SECURITY.md) before merging.
 
-Durable ingestion scheduling, broader geographic/mandatory-qualification reasoning and free-form factual AI rewriting remain incomplete. Real submissions require provider/employer authorization, credentials, approved payloads, eligibility rules and verified receipts; they remain disabled. Manual completions are explicitly user-reported. OCR, formatted PDF export and public-hosting hardening are tracked separately in the backlog. Nothing has been publicly hosted; repository visibility has not changed.
+Durable ingestion scheduling and dashboard status are implemented in the current increment with local tests; PostgreSQL/Flyway/browser CI acceptance is pending. Broader operational metrics, geographic/mandatory-qualification reasoning and free-form factual AI rewriting remain incomplete. Real submissions require provider/employer authorization, credentials, approved payloads, eligibility rules and verified receipts; they remain disabled. Manual completions are explicitly user-reported. OCR, formatted PDF export and public-hosting hardening are tracked separately in the backlog. Nothing has been publicly hosted; repository visibility has not changed.
 
 The November 15 target remains conditional on the remaining work and external acceptance. Passing Linux/mocked-model checks does not establish real-model or native Mac acceptance.
 

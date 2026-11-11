@@ -19,6 +19,7 @@ class DatabaseStartupTest {
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
         registry.add("app.security.jwt.secret", () -> "test-only-signing-key-that-is-long-enough-for-hs512-keep-out-of-production-123456789");
+        registry.add("jobpulse.ingestion.worker-enabled", () -> "false");
         registry.add("jobpulse.tailoring.worker-enabled", () -> "false");
         registry.add("jobpulse.feeds.include-mock", () -> "false");
         registry.add("jobpulse.feeds.greenhouse-boards", () -> "");
@@ -29,6 +30,79 @@ class DatabaseStartupTest {
 
     @org.springframework.beans.factory.annotation.Autowired com.jobpulse.domain.repository.UserRepository users;
     @org.springframework.beans.factory.annotation.Autowired org.springframework.jdbc.core.JdbcTemplate database;
+    @org.springframework.beans.factory.annotation.Autowired com.jobpulse.application.service.IngestionRunService ingestionRuns;
+
+    @Test void durableDiscoveryCoalescesRequestsAndRecoversExpiredWorkers() throws Exception {
+        database.update("DELETE FROM ingestion_runs");
+        try {
+            String token=registerAndLogin("discovery-test");
+            mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/jobs/ingestion"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isUnauthorized());
+            mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/jobs/ingest"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isUnauthorized());
+            mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/jobs/ingestion").header("Authorization","Bearer "+token))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isNoContent());
+            var response=mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/jobs/ingest").header("Authorization","Bearer "+token))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isAccepted()).andReturn();
+            long id=mapper.readTree(response.getResponse().getContentAsString()).path("id").asLong();
+            String anotherUser=registerAndLogin("discovery-other-user");
+            mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/jobs/ingest").header("Authorization","Bearer "+anotherUser))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isAccepted())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.id").value(id))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.userId").doesNotExist())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.resume").doesNotExist());
+
+            try(var pool=java.util.concurrent.Executors.newFixedThreadPool(2)) {
+                var one=pool.submit(()->ingestionRuns.request());
+                var two=pool.submit(()->ingestionRuns.request());
+                org.junit.jupiter.api.Assertions.assertEquals(id,one.get(10,java.util.concurrent.TimeUnit.SECONDS).id());
+                org.junit.jupiter.api.Assertions.assertEquals(id,two.get(10,java.util.concurrent.TimeUnit.SECONDS).id());
+            }
+            org.junit.jupiter.api.Assertions.assertEquals(1,database.queryForObject("SELECT count(*) FROM ingestion_runs",Integer.class));
+            org.junit.jupiter.api.Assertions.assertEquals(id,ingestionRuns.claim().orElseThrow());
+            org.junit.jupiter.api.Assertions.assertTrue(ingestionRuns.claim().isEmpty());
+            database.update("UPDATE ingestion_runs SET heartbeat_at=clock_timestamp()-interval '3 minutes' WHERE id=?",id);
+            ingestionRuns.heartbeat(id);
+            org.junit.jupiter.api.Assertions.assertTrue(ingestionRuns.claim().isEmpty());
+            org.junit.jupiter.api.Assertions.assertEquals("RUNNING",ingestionRuns.get(id).status());
+            database.update("UPDATE ingestion_runs SET heartbeat_at=clock_timestamp()-interval '3 minutes' WHERE id=?",id);
+            org.junit.jupiter.api.Assertions.assertTrue(ingestionRuns.claim().isEmpty());
+            org.junit.jupiter.api.Assertions.assertEquals("FAILED",ingestionRuns.get(id).status());
+            var report=new com.jobpulse.application.service.JobIngestionService.IngestionReport(2,2,0,0,java.util.Set.of("GREENHOUSE:fixture"),java.util.Map.of(),java.time.LocalDateTime.now());
+            ingestionRuns.complete(id,report,null);
+            org.junit.jupiter.api.Assertions.assertEquals("FAILED",ingestionRuns.get(id).status(),"Late workers must not replace a recovered failure");
+            org.junit.jupiter.api.Assertions.assertEquals(id,ingestionRuns.request().id(),"Failure cooldown must survive requests");
+            database.update("UPDATE ingestion_runs SET finished_at=clock_timestamp()-interval '2 minutes' WHERE id=?",id);
+            var queued=ingestionRuns.request();
+            org.junit.jupiter.api.Assertions.assertNotEquals(id,queued.id());
+            var restarted=new com.jobpulse.application.service.IngestionRunService(database,mapper);
+            org.junit.jupiter.api.Assertions.assertEquals("QUEUED",restarted.latest().orElseThrow().status());
+            org.junit.jupiter.api.Assertions.assertEquals(queued.id(),ingestionRuns.claim().orElseThrow());
+            ingestionRuns.complete(queued.id(),report,null);
+            org.junit.jupiter.api.Assertions.assertEquals("SUCCEEDED",restarted.latest().orElseThrow().status());
+            org.junit.jupiter.api.Assertions.assertEquals(2,restarted.latest().orElseThrow().report().path("saved").asInt());
+            mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/jobs/ingest").header("Authorization","Bearer "+token))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.id").value(queued.id()));
+        } finally { database.update("DELETE FROM ingestion_runs"); }
+    }
+
+    @Test void discoveryReportsPartialAndTotalFeedFailureTruthfully() {
+        database.update("DELETE FROM ingestion_runs");
+        try {
+            var run=ingestionRuns.request();ingestionRuns.claim();
+            ingestionRuns.complete(run.id(),new com.jobpulse.application.service.JobIngestionService.IngestionReport(1,1,0,0,
+                java.util.Set.of("GREENHOUSE:fixture"),java.util.Map.of("LEVER:fixture","Provider unavailable"),java.time.LocalDateTime.now()),null);
+            org.junit.jupiter.api.Assertions.assertEquals("PARTIAL",ingestionRuns.get(run.id()).status());
+            database.update("UPDATE ingestion_runs SET finished_at=clock_timestamp()-interval '2 minutes'");
+            var retry=ingestionRuns.request();ingestionRuns.claim();
+            ingestionRuns.complete(retry.id(),new com.jobpulse.application.service.JobIngestionService.IngestionReport(0,0,0,0,
+                java.util.Set.of(),java.util.Map.of("LEVER:fixture","Provider unavailable"),java.time.LocalDateTime.now()),null);
+            org.junit.jupiter.api.Assertions.assertEquals("FAILED",ingestionRuns.get(retry.id()).status());
+            org.junit.jupiter.api.Assertions.assertTrue(ingestionRuns.get(retry.id()).error().contains("No employer feed completed"));
+        } finally { database.update("DELETE FROM ingestion_runs"); }
+    }
+
     @Test void migrationsAndHibernateValidationStart() {}
 
     @Test void logoutRevokesSignedTokensAndDisabledUsersCannotLogin() throws Exception {

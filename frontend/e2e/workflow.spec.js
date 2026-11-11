@@ -3,6 +3,7 @@ import {test,expect} from '@playwright/test';
 test('login, preview own resume, and log out with mocked API',async({page})=>{
   await page.route('**/api/**',async route=>{
     const path=new URL(route.request().url()).pathname;
+    if(path==='/api/jobs/ingestion') { await route.fulfill({status:204});return; }
     let data=[];
     if(path==='/api/auth/login') data={token:'browser-test-token',username:'alice',role:'USER'};
     if(path==='/api/resumes') data=[{id:1,filename:'cv.txt',active:true}];

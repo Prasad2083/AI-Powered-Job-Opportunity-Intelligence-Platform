@@ -11,6 +11,7 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
       const path = new URL(route.request().url()).pathname;
       let data = [];
       if (path === '/api/jobs') data = jobs;
+      if (path === '/api/jobs/ingestion') data = { id: 1, status: 'SUCCEEDED', report: { checkedSources: [], saved: 0, archived: 0, failed: 0, sourceFailures: {} } };
       if (path === '/api/resumes') data = [{ id: 1, filename: 'sample-resume.txt', active: true }];
       if (path === '/api/matches') data = [{ jobId: 1, title: 'Quality Engineer 01', company: 'Example Studio', score: 74.2, source: 'MANUAL', matchedSkills: ['java', 'selenium', 'junit'], skillsNotEvidenced: ['playwright'], explanation: 'Illustrative skill evidence. Review requirements before using this ranking.', locationPreferenceMatched: true }];
       if (path === '/api/tailoring/tasks') data = [{ id: 7, jobId: 1, resumeId: 1, status: 'SUCCEEDED' }];
@@ -25,6 +26,7 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
     await expect(page.getByRole('heading', { name: 'Jobs', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Jobs', exact: true })).toHaveAttribute('aria-current', 'page');
     await expect(page.getByRole('button', { name: 'Read job: Quality Engineer 01', exact: true })).toBeVisible();
+    await expect(page.getByText('Discovery completed', { exact: true })).toBeVisible();
     await noOverflow();
     await page.screenshot({ path: testInfo.outputPath('jobs.png'), fullPage: viewport.width < 500 });
     await page.getByRole('button', { name: 'Next jobs page' }).click();

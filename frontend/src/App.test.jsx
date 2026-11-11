@@ -8,7 +8,7 @@ import App from './App';
 vi.mock('axios', () => ({ default: { post: vi.fn(), get: vi.fn(), interceptors: { response: { use: vi.fn(), eject: vi.fn() } } } }));
 beforeEach(() => {
   window.history.replaceState({}, '', '/');
-  axios.get.mockResolvedValue({ data: [] });
+  axios.get.mockImplementation(async url => url.endsWith('/jobs/ingestion') ? { status: 204 } : { data: [] });
 });
 afterEach(() => { cleanup(); localStorage.clear(); vi.clearAllMocks(); window.history.replaceState({}, '', '/'); });
 

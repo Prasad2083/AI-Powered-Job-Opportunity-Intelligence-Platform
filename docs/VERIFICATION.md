@@ -2,6 +2,12 @@
 
 Environment: managed Linux cloud workspace, Java 21 JDK, Maven 3.9.9, PostgreSQL 16 Docker containers, Node/npm and Chromium. Date: 2026-10-28. Repository baseline `9ada487`; see git history for the resulting implementation commits.
 
+## Background discovery increment (2026-11-11 UTC; CI pending)
+
+Additive V11 persists a single shared employer-refresh queue and operational reports. Manual/scheduled requests coalesce; active work returns 202, recent terminal results return 200. A separate worker/heartbeat records interrupted runs without fabricating success; late results cannot replace failures. Jobs restores and polls status while preserving private manual-entry edits. Existing V1–V10 and provider backoff/archival logic remain unchanged.
+
+Executed locally: Java 21 offline Maven **60 non-PostgreSQL tests passed**, zero failures/errors/skips, and **16 frontend tests passed**; production frontend build and whitespace checks passed. New PostgreSQL/REST cases and browser refresh assertions are committed for CI, not claimed executed locally. Native Mac/model behavior remains unverified. This section will be updated with published CI evidence.
+
 ## Published source and CI acceptance (2026-11-11 UTC)
 
 Published application snapshot **`5e357dc`** to `feature/production-workflow-20261027` without a force update. Its Git tree SHA exactly matched the tested local source. Original local commits were retained and reconciled by merging identical trees; no source changes or user work were discarded.

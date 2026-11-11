@@ -38,7 +38,7 @@ Acceptance: fixtures cover tracking parameters, meaningful URL parameters, repos
 
 ### JP-106 · P1 · Durable ingestion and visible refresh progress
 
-Move long employer-feed refreshes out of HTTP requests into a PostgreSQL-backed workflow, reusing the local worker approach. Persistent retry metadata is published and database-verified in CI; see the implementation checklist. A durable ingestion queue is still unimplemented.
+Move long employer-feed refreshes out of HTTP requests into a PostgreSQL-backed workflow, reusing the local worker approach. Persistent retry metadata is published and database-verified in CI; see the implementation checklist. The current increment implements durable queue admission, reports, heartbeat recovery and dashboard status; PostgreSQL/Flyway/browser CI acceptance is pending. See [background discovery](BACKGROUND_DISCOVERY.md).
 
 Acceptance: bounded admission/concurrency, duplicate refresh prevention, persisted run reports, restart recovery and controlled retry behavior; queued/running/partial/failed/completed UI states survive refresh. Reports distinguish checked feeds from deferred/failed feeds and retain the existing no-archive-on-incomplete-feed rule. Tests verify existing user isolation. No Kafka requirement or additional hosted worker service.
 
