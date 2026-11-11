@@ -1,14 +1,22 @@
-# Release status: local development candidate; do not merge or deploy yet
+# Release status: tested development candidate; Mac/model acceptance remains open
 
-Application source was published to the existing development branch as `5e357dc` on 2026-11-11 using the authorized GitHub connector with an expected-head check and a non-force fast-forward. The published source tree exactly matched the locally tested tree. The five original development commits are retained in local merged history, a preservation branch and private Git bundles; no existing work was discarded.
+Published application increment **`68dac00`** and workflow follow-up **`5c5795f`** to the existing feature branch on November 11 without force. Published trees exactly matched local trees; original granular development commits remain preserved in merged local history and preservation branches. No existing work, historical migration or original resume was discarded.
 
-## Current discovery increment (November 11)
+## Current verified candidate
 
-Published `68dac00` adds a shared PostgreSQL employer-discovery queue, coalesced requests, persisted reports, interrupted-worker recovery and restored/polled dashboard status. See [background discovery](docs/BACKGROUND_DISCOVERY.md). No private resume/manual-description data is stored in shared reports. The source was published without force and its tree exactly matched local source.
+[CI run 43035912511](https://github.com/Prasad2083/AI-Powered-Job-Opportunity-Intelligence-Platform/actions/runs/43035912511) passed all four jobs on `5c5795f`:
 
-[CI run 43034008967](https://github.com/Prasad2083/AI-Powered-Job-Opportunity-Intelligence-Platform/actions/runs/43034008967) has passed backend and shell checks: **72 backend tests**, including **12 PostgreSQL/REST tests**, V1–V11 fresh and V3→V11 historical migrations, and OSV **0 unreviewed/actionable findings** across 160 dependencies. Frontend tests/build/npm audit passed; browser jobs failed before tests because apt/font mirrors could not resolve. The workflow now installs Chromium using existing hosted native libraries; browser acceptance is pending a new CI run. Local frontend **16 tests** and production build passed; the local browser server could not start under sandbox port restrictions. Native Mac/model acceptance remains pending.
+- **72 backend tests passed**, zero failures/errors/skips, including **12 PostgreSQL/REST integration tests** and authentication/user-isolation coverage.
+- Fresh **V1–V11** migrations and a historical **V3→V11** upgrade passed, preserving original resume text.
+- **16 frontend tests**, production build and npm audit **0 vulnerabilities**.
+- **8 full-stack browser tests**, including discovery completion/reload and original-preserving resume/tailoring/manual-history workflows. Only Ollama is mocked in the real-stack flow; standalone frontend scenarios use explicit API fixtures.
+- OSV scanned **160 dependencies**: **0 unreviewed/actionable findings**. Two version-specific Spring MVC applicability reviews remain visible, not patched or erased. Launcher syntax passed.
 
-## Verified in GitHub Actions
+The new shared employer-discovery queue coalesces refreshes, persists reports, records interrupted workers and restores/polls dashboard status without overwriting private manual-entry edits. Reports contain no private resume/manual-job payloads. Existing provider retry deadlines and complete-feed archival safeguards remain in place. See [background discovery](docs/BACKGROUND_DISCOVERY.md).
+
+Initial browser CI failed during Ubuntu apt/font mirror DNS resolution before tests. The workflow now uses preinstalled native Chromium libraries and installs the browser without redundant apt setup; the successful run above verifies actual browser execution. Local Docker/port restrictions still prevent those checks in the command sandbox; CI supplied the integration evidence.
+
+## Earlier published baseline (superseded by current candidate)
 
 [CI run 42945174233](https://github.com/Prasad2083/AI-Powered-Job-Opportunity-Intelligence-Platform/actions/runs/42945174233) passed all four jobs on `5e357dc`:
 
@@ -25,7 +33,7 @@ Implemented local workflows include secure user-scoped authentication, original-
 
 Native Mac/Docker Desktop and actual Ollama/Qwen quality still need acceptance on the user's machine. Resolve/rotate any real credentials formerly tracked in repository history. Keep current CI green and review the remaining [implementation checklist](docs/IMPLEMENTATION_CHECKLIST.md) and [security gates](SECURITY.md) before merging.
 
-Durable ingestion scheduling and dashboard status are implemented in the current increment with local tests; PostgreSQL/Flyway/browser CI acceptance is pending. Broader operational metrics, geographic/mandatory-qualification reasoning and free-form factual AI rewriting remain incomplete. Real submissions require provider/employer authorization, credentials, approved payloads, eligibility rules and verified receipts; they remain disabled. Manual completions are explicitly user-reported. OCR, formatted PDF export and public-hosting hardening are tracked separately in the backlog. Nothing has been publicly hosted; repository visibility has not changed.
+Durable ingestion scheduling and dashboard status now pass PostgreSQL/Flyway/browser CI. Broader operational metrics, geographic/mandatory-qualification reasoning and free-form factual AI rewriting remain incomplete. Real submissions require provider/employer authorization, credentials, approved payloads, eligibility rules and verified receipts; they remain disabled. Manual completions are explicitly user-reported. OCR, formatted PDF export and public-hosting hardening are tracked separately in the backlog. Nothing has been publicly hosted; repository visibility has not changed.
 
 The November 15 target remains conditional on the remaining work and external acceptance. Passing Linux/mocked-model checks does not establish real-model or native Mac acceptance.
 

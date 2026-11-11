@@ -30,7 +30,7 @@ Baseline: existing development branch `feature/production-workflow-20261027`, PR
 
 - [x] Experience statements use range minimums and ignore unrelated company/education year mentions; location phrases use word boundaries and accept reversed Canada/remote labels. These remain ranking hints, not eligibility verification.
 - [x] Durable PostgreSQL tailoring queue: source snapshots, one model task at a time, one active task per user, bounded admission, owner-only status/results, cancellation and expired-lease recovery. Model failures require explicit retry; task history survives browser refresh. No Kafka.
-- [ ] Durable ingestion queue: PostgreSQL coalescing, restart-safe queued work, interrupted-worker reporting and dashboard status implemented; PostgreSQL/Flyway/browser CI acceptance pending for this increment. See [background discovery](BACKGROUND_DISCOVERY.md).
+- [x] Durable ingestion queue: PostgreSQL coalescing, persisted queued work/reports, interrupted-worker reporting and restored dashboard status verified in CI run 43035912511 (72 backend tests, 16 frontend tests, 8 full-stack browser tests). See [background discovery](BACKGROUND_DISCOVERY.md).
 - [ ] Broader operational metrics and ingestion run/report retention.
 
 - [x] Configurable multiple-employer Greenhouse and Lever discovery; no single-employer dependency.
@@ -93,7 +93,7 @@ Executed results and reproducible commands are in [VERIFICATION.md](VERIFICATION
 
 ## November 15 local release gates (updated November 11)
 
-- [ ] Latest ingestion increment passes all current backend, PostgreSQL/Flyway, browser and dependency CI checks; record the source commit/run in VERIFICATION.md.
+- [x] Ingestion application source `68dac00` with CI follow-up `5c5795f` passes backend, PostgreSQL/Flyway, browser and dependency checks in CI run 43035912511; evidence recorded in VERIFICATION.md. Recheck current head before release.
 - [ ] On the user's Mac, pull the feature branch, stop the prior backend and launch with the existing PostgreSQL volume; confirm login, upload/original download, background discovery after reload, matching, draft/version download and reported application history. See MAC_LOCAL_SETUP.md and BACKGROUND_DISCOVERY.md.
 - [ ] Run actual local Qwen3 4B against a real owned resume/job; review factual accuracy and acceptable latency/memory. Mocked model protocol checks do not satisfy this gate.
 - [ ] Owner confirms assessment/rotation of any real historical credentials; no values should be shared in chat.
