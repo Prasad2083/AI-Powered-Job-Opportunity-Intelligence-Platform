@@ -2,6 +2,12 @@
 
 Application source was published to the existing development branch as `5e357dc` on 2026-11-11 using the authorized GitHub connector with an expected-head check and a non-force fast-forward. The published source tree exactly matched the locally tested tree. The five original development commits are retained in local merged history, a preservation branch and private Git bundles; no existing work was discarded.
 
+## Current discovery increment (November 11)
+
+Published `68dac00` adds a shared PostgreSQL employer-discovery queue, coalesced requests, persisted reports, interrupted-worker recovery and restored/polled dashboard status. See [background discovery](docs/BACKGROUND_DISCOVERY.md). No private resume/manual-description data is stored in shared reports. The source was published without force and its tree exactly matched local source.
+
+[CI run 43034008967](https://github.com/Prasad2083/AI-Powered-Job-Opportunity-Intelligence-Platform/actions/runs/43034008967) has passed backend and shell checks: **72 backend tests**, including **12 PostgreSQL/REST tests**, V1–V11 fresh and V3→V11 historical migrations, and OSV **0 unreviewed/actionable findings** across 160 dependencies. Frontend tests/build/npm audit passed; browser jobs failed before tests because apt/font mirrors could not resolve. The workflow now installs Chromium using existing hosted native libraries; browser acceptance is pending a new CI run. Local frontend **16 tests** and production build passed; the local browser server could not start under sandbox port restrictions. Native Mac/model acceptance remains pending.
+
 ## Verified in GitHub Actions
 
 [CI run 42945174233](https://github.com/Prasad2083/AI-Powered-Job-Opportunity-Intelligence-Platform/actions/runs/42945174233) passed all four jobs on `5e357dc`:

@@ -2,11 +2,11 @@
 
 Environment: managed Linux cloud workspace, Java 21 JDK, Maven 3.9.9, PostgreSQL 16 Docker containers, Node/npm and Chromium. Date: 2026-10-28. Repository baseline `9ada487`; see git history for the resulting implementation commits.
 
-## Background discovery increment (2026-11-11 UTC; CI pending)
+## Background discovery increment (2026-11-11 UTC; browser CI retry pending)
 
 Additive V11 persists a single shared employer-refresh queue and operational reports. Manual/scheduled requests coalesce; active work returns 202, recent terminal results return 200. A separate worker/heartbeat records interrupted runs without fabricating success; late results cannot replace failures. Jobs restores and polls status while preserving private manual-entry edits. Existing V1–V10 and provider backoff/archival logic remain unchanged.
 
-Executed locally: Java 21 offline Maven **60 non-PostgreSQL tests passed**, zero failures/errors/skips, and **16 frontend tests passed**; production frontend build and whitespace checks passed. New PostgreSQL/REST cases and browser refresh assertions are committed for CI, not claimed executed locally. Native Mac/model behavior remains unverified. This section will be updated with published CI evidence.
+Executed locally: Java 21 offline Maven **60 non-PostgreSQL tests passed**, zero failures/errors/skips, and **16 frontend tests passed**; production frontend build and whitespace checks passed. Published source `68dac00` has passed the backend and shell jobs in [CI run 43034008967](https://github.com/Prasad2083/AI-Powered-Job-Opportunity-Intelligence-Platform/actions/runs/43034008967). Backend logs confirm **72 tests passed**, zero failures/errors/skips, including **12 PostgreSQL/REST integration tests**. Fresh V1–V11 and historical V3→V11 migrations passed, retaining original resume text. OSV scanned **160 dependencies**, with **0 unreviewed/actionable advisories**; the two existing Spring MVC applicability reviews remain visible. Frontend logs also confirm **16 tests passed**, production build passed and npm audit **0 vulnerabilities**. Both browser jobs failed **before tests** during apt/font setup because Ubuntu mirrors could not resolve. Logs confirm all native Chromium libraries were already installed on the hosted runners. CI now installs Chromium without repeating apt setup; actual browser launch/tests still validate required libraries and fail normally. The workflow retry remains pending. The local browser attempt stopped before tests because the configured Vite server could not start in the port-restricted sandbox. Native Mac/model behavior remains unverified.
 
 ## Published source and CI acceptance (2026-11-11 UTC)
 

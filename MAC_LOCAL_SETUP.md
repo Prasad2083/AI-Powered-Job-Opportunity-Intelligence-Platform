@@ -38,6 +38,14 @@ Empty feed lists disable those providers. Employer slugs are configurable; a lis
 
 Do not retain an old `SPRING_PROFILES_ACTIVE=dev` entry unless needed. Both normal and dev configurations now use Flyway and `ddl-auto=validate`; neither creates sample resumes or drops tables.
 
+## Background discovery acceptance after an update
+
+Pull the feature branch with a clean working tree, then stop the prior tracked JobPulse backend/frontend processes after inspecting their PID files and commands. Restart with `bash start-mac.sh` so the new backend applies additive migrations and the frontend uses the matching API contract. Retain the existing PostgreSQL volume and cached model.
+
+On Jobs, choose **Find jobs**. A queued/running refresh continues while you visit another section; return or reload to see the persisted report. Requests close together can reuse the same run. Review partial/provider errors and counts rather than assuming every feed succeeded. A run checking no feeds does not establish any live vacancy. Private pasted descriptions remain editable while discovery runs. See [background discovery](docs/BACKGROUND_DISCOVERY.md) for status, cooldown and recovery details.
+
+For the local release gate, also test one owned resume through matching, actual Qwen draft review, approved version download, user-reported manual application history and unchanged original download. Record model latency/memory and factual review results; do not submit a real application merely to test this workflow. Linux/mocked-model CI does not establish this Mac acceptance.
+
 ## Recovery and stopping
 
 - **Missing Java compiler:** install a Java 21 JDK, not only a JRE. Verify `javac -version`.

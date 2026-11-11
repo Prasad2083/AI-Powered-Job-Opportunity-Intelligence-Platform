@@ -11,7 +11,7 @@ Baseline: existing development branch `feature/production-workflow-20261027`, PR
 - [x] BCrypt registration, input bounds, JWT signature/expiry validation, disabled-user checks, HTTP 401 behavior.
 - [x] Logout increments a persisted token version and revokes prior sessions. Frontend clears expired sessions.
 - [x] Own-user resume, tailored-document, preferences, manual-job and application access. DTOs avoid password-hash serialization.
-- [x] PostgreSQL 16 fresh migrations and Hibernate validation; historical V3→latest upgrade preserves resume text. V4–V10 are additive.
+- [x] PostgreSQL 16 fresh migrations and Hibernate validation; historical V3→latest upgrade preserves resume text. V4–V11 are additive.
 - [x] No automatic seed resumes, schema dropping, mock submission success, or hard-coded runtime JWT default.
 - [ ] Resolve/rotate any credentials formerly stored in repository history; current tree excludes `.env` and logs.
 - [ ] Production abuse controls (distributed throttling, password recovery, TLS/cookie/session hardening) before public exposure. Current local launcher binds to loopback.
@@ -48,7 +48,7 @@ Baseline: existing development branch `feature/production-workflow-20261027`, PR
 - [ ] Semantic verification of mandatory qualifications, overlapping work-history calculations, geographic/work-authorization eligibility and embeddings. All eligibility remains subject to human review.
 - [x] Per-employer feed retry deferral with bounded exponential backoff, HTTP 429/503 Retry-After seconds/date support, success reset and independent healthy-feed refresh. Deferral never marks a source checked or archives its listings. Basic backoff was initially tested in memory; persistent-state verification is tracked below.
 - [x] Persistent provider retry state with additive V10 migration: real PostgreSQL/CI verifies store recreation, concurrent failure updates, exact/extreme deadlines and success reset.
-- [ ] Durable queued ingestion, large-dataset paging/index tuning and ingestion operational metrics.
+- [ ] Large-dataset server paging/index tuning and ingestion operational metrics. Durable queue acceptance is tracked above.
 
 ## Tailoring and applications
 
@@ -90,3 +90,13 @@ Baseline: existing development branch `feature/production-workflow-20261027`, PR
 QAAnywhere-inspired improvements and pre-hosting confidentiality gates are planned in [BACKLOG.md](BACKLOG.md). They are not completed features or additions to the current release commitment.
 
 Executed results and reproducible commands are in [VERIFICATION.md](VERIFICATION.md). Future features are not silently treated as finished.
+
+## November 15 local release gates (updated November 11)
+
+- [ ] Latest ingestion increment passes all current backend, PostgreSQL/Flyway, browser and dependency CI checks; record the source commit/run in VERIFICATION.md.
+- [ ] On the user's Mac, pull the feature branch, stop the prior backend and launch with the existing PostgreSQL volume; confirm login, upload/original download, background discovery after reload, matching, draft/version download and reported application history. See MAC_LOCAL_SETUP.md and BACKGROUND_DISCOVERY.md.
+- [ ] Run actual local Qwen3 4B against a real owned resume/job; review factual accuracy and acceptable latency/memory. Mocked model protocol checks do not satisfy this gate.
+- [ ] Owner confirms assessment/rotation of any real historical credentials; no values should be shared in chat.
+- [ ] Review scope/limitations and release approval while keeping real submissions disabled. Free-form factual rewriting, semantic eligibility and optional exports remain incomplete rather than silently certified.
+
+The Sunday target is conditional on these gates. Linux CI can establish a tested development candidate, but cannot establish native Mac/model acceptance or credential rotation. Keep PR #1 draft and main unchanged until release requirements are satisfied.
