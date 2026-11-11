@@ -9,6 +9,13 @@ import java.util.regex.Pattern;
 public final class ResumeParser {
 
     private static final Map<String, String> SKILL_CATEGORIES = new HashMap<>();
+    private static final Map<String, Pattern> SKILL_PATTERNS = new HashMap<>();
+    private static final Map<String, List<String>> ALIASES = Map.of(
+        "csharp", List.of("c#", "c sharp", "c-sharp"),
+        "rest assured", List.of("restassured", "rest-assured"),
+        "postgresql", List.of("postgres"),
+        "kubernetes", List.of("k8s")
+    );
 
     static {
         // Languages
@@ -50,6 +57,17 @@ public final class ResumeParser {
         SKILL_CATEGORIES.put("azure", "Tools");
         SKILL_CATEGORIES.put("gcp", "Tools");
         SKILL_CATEGORIES.put("terraform", "Tools");
+
+        for (String skill : SKILL_CATEGORIES.keySet()) {
+            var names = new ArrayList<String>();
+            names.add(skill);
+            names.addAll(ALIASES.getOrDefault(skill, List.of()));
+            String alternatives = names.stream().map(ResumeParser::phrasePattern)
+                .collect(java.util.stream.Collectors.joining("|"));
+            // Word boundaries alone fail for punctuation-ended names such as C#.
+            SKILL_PATTERNS.put(skill, Pattern.compile("(?<![\\p{L}\\p{N}_])(?:" + alternatives + ")(?![\\p{L}\\p{N}_])",
+                Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE | Pattern.UNICODE_CHARACTER_CLASS));
+        }
     }
 
     private ResumeParser() {}
@@ -65,17 +83,19 @@ public final class ResumeParser {
             return foundSkills;
         }
 
-        String lowerText = resumeText.toLowerCase();
-
-        // Simple pattern: look for skill names surrounded by word boundaries
+        // Mentions only: context, proficiency and negation still require review.
         for (Map.Entry<String, String> skill : SKILL_CATEGORIES.entrySet()) {
-            Pattern pattern = Pattern.compile("\\b" + skill.getKey() + "\\b");
-            if (pattern.matcher(lowerText).find()) {
+            if (SKILL_PATTERNS.get(skill.getKey()).matcher(resumeText).find()) {
                 foundSkills.put(skill.getKey(), skill.getValue());
             }
         }
 
         return foundSkills;
+    }
+
+    private static String phrasePattern(String name) {
+        return Arrays.stream(name.split(" ")).map(Pattern::quote)
+            .collect(java.util.stream.Collectors.joining("\\s+"));
     }
 
     /**
@@ -91,9 +111,9 @@ public final class ResumeParser {
             "Full Stack", "Backend", "Frontend", "Mobile"
         };
 
-        String lowerText = resumeText.toLowerCase();
+        String lowerText = resumeText.toLowerCase(Locale.ROOT);
         for (String title : commonTitles) {
-            if (lowerText.contains(title.toLowerCase())) {
+            if (lowerText.contains(title.toLowerCase(Locale.ROOT))) {
                 titles.add(title);
             }
         }

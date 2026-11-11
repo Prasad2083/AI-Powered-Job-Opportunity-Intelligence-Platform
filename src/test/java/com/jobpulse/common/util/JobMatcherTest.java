@@ -63,4 +63,46 @@ class JobMatcherTest {
             assertTrue(Double.isFinite((double)result.get("score")));
         }
     }
+    @Test void commonSpellingsMatchCanonicalJobSkillsWithoutDuplicateCredit() {
+        var result=JobMatcher.evaluate("C#, REST-Assured, Postgres and K8s", "Engineer",
+            "CSharp, RESTAssured, PostgreSQL and Kubernetes", null, null, null);
+        assertEquals(Set.of("csharp","rest assured","postgresql","kubernetes"),result.get("matchedSkills"));
+        assertEquals(Set.of(),result.get("skillsNotEvidenced"));
+        assertTrue(result.get("explanation").toString().contains("not proof of proficiency"));
+    }
+    @Test void preparedResumeHandlesDifferentJobsWithoutMutatingItsEvidence() {
+        var context=JobMatcher.prepare("Java Selenium engineer, 5 years experience","Engineer","Toronto");
+        var first=context.evaluate("Engineer","Java Selenium, 3 years experience","Toronto");
+        ((Set<?>)first.get("matchedSkills")).clear();
+        var next=context.evaluate("Engineer","Java PostgreSQL, 7 years experience","Toronto");
+        assertEquals(Set.of("java"),next.get("matchedSkills"));
+        assertEquals(Set.of("postgresql"),next.get("skillsNotEvidenced"));
+        assertEquals(5.0,next.get("resumeYearsMentioned"));
+        assertEquals(true,next.get("experienceReviewRequired"));
+    }
+    @Test void separatePreparedResumesKeepTheirPreferencesAndMentionsIsolated() {
+        var alice=JobMatcher.prepare("Java engineer","Engineer","Toronto");
+        var bob=JobMatcher.prepare("C# engineer","Engineer","Remote Canada");
+        var a=alice.evaluate("Engineer","Java","Toronto");
+        var b=bob.evaluate("Engineer","Java","Toronto");
+        assertEquals(Set.of("java"),a.get("matchedSkills"));assertEquals(Set.of(),b.get("matchedSkills"));
+        assertEquals(true,a.get("locationPreferenceMatched"));assertEquals(false,b.get("locationPreferenceMatched"));
+        assertEquals(a.get("score"),alice.evaluate("Engineer","Java","Toronto").get("score"));
+    }
+    @Test void preparedContextCanBeReadConcurrentlyWithoutCrossJobResults() throws Exception {
+        var context=JobMatcher.prepare("Java engineer","Engineer","Toronto");
+        try(var executor=java.util.concurrent.Executors.newFixedThreadPool(4)) {
+            var calls=new java.util.ArrayList<java.util.concurrent.Future<java.util.Map<String,Object>>>();
+            for(int i=0;i<24;i++) {
+                String skill=i%2==0?"Java":"Python";
+                calls.add(executor.submit(()->context.evaluate("Engineer",skill,"Toronto")));
+            }
+            for(int i=0;i<calls.size();i++) assertEquals(i%2==0?Set.of("java"):Set.of(),
+                calls.get(i).get(5,java.util.concurrent.TimeUnit.SECONDS).get("matchedSkills"));
+        }
+    }
+    @Test void multilineSeniorTitlesStillRequireSeniorityReview() {
+        var result=JobMatcher.prepare("Java engineer",null,null).evaluate("Senior\nQuality Engineer","Java",null);
+        assertEquals(true,result.get("seniorityReviewRequired"));
+    }
 }

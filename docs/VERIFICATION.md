@@ -2,6 +2,36 @@
 
 Environment: managed Linux cloud workspace, Java 21 JDK, Maven 3.9.9, PostgreSQL 16 Docker containers, Node/npm and Chromium. Date: 2026-10-28. Repository baseline `9ada487`; see git history for the resulting implementation commits.
 
+## Per-request matching preparation (local, 2026-11-11 UTC)
+
+The Matches controller now prepares immutable resume skill mentions, text vectors, explicit years, seniority keywords and role/location preferences once per authenticated request. Each job still gets a fresh result. Nothing is stored in a shared user cache, and no API shape, scoring weights, database schema or dependencies changed. Seniority detection also handles titles containing line breaks.
+
+Executed offline: **57 non-PostgreSQL backend tests passed**, zero failures/errors/skips. New checks cover known cosine results, empty vectors, repeated and concurrent context use, result mutation isolation, different users/preferences on the same controller, missing primary resumes and multiline senior titles. A one-off reference harness compiled the pre-refactor matcher/text scorer from `b02fd15` under separate class names and confirmed exact result-map parity for **576 scenarios** (six resumes, eight jobs, three role lists and four location lists); this corpus intentionally excludes the corrected multiline-title case. This is regression evidence, not a latency/throughput benchmark.
+
+No frontend code changed in this increment; the previous 13-test/build evidence is retained rather than described as a new run. Current access probes again failed: Git proxy connection refused/unreachable from sandbox, Docker socket operation not permitted, and local bind denied. No new PostgreSQL/Flyway, browser, dependency-scan or CI pass is claimed. Rebuild the private Git bundle after this commit and follow [the handoff](OFFLINE_HANDOFF.md) if managed execution cannot be restored.
+
+## Skill spelling normalization (local, 2026-11-10 UTC)
+
+Recognizes C#/C Sharp/c-sharp as csharp; REST-Assured/RESTAssured as rest assured; Postgres as postgresql; and K8s as kubernetes. Matching uses canonical names without duplicate alias credit, precompiled Unicode-aware boundaries and flexible whitespace. Locale-independent handling covers Turkish default-locale behavior without altering the source resume. Ambiguous ordinary words such as “go” are not newly promoted into a programming qualification.
+
+Executed offline: **49 non-PostgreSQL backend tests passed**, zero failures/errors/skips, including 5 new parser cases and a matcher alias regression; frontend **13 tests passed** and production build passed. The match explanation/UI explicitly describes detected skills as text mentions, not proficiency evidence; negation and qualification context still require review.
+
+No dependency or migration changes in this increment. Current PostgreSQL/Flyway/browser/scan/CI gates remain pending because runtime access and publication are still blocked. A private [offline handoff](OFFLINE_HANDOFF.md) offers a transfer/verification path without resetting or overwriting the existing branch; successful download, import or execution is not assumed.
+
+## Archived-listing draft preservation (local, 2026-11-10 UTC)
+
+Fixed the save path so a completed owned task or an owned saved version can preserve its draft after the source listing is archived. Provenance still has to match the user, resume and job. Unanchored drafts require a currently visible job, and new tasks for archived listings remain rejected. Resume text and original uploads are not mutated.
+
+Executed locally: offline Java 21 Maven **43 non-PostgreSQL tests passed**, zero failures/errors/skips, including **8 controller regression cases** for owned source snapshots, missing/foreign/mismatched provenance, unanchored saves and resume ownership; frontend **13 tests passed**; production build passed; `git diff --check` passed. The existing PostgreSQL REST workflow now archives the source job before saving task/document versions and asserts new generation is rejected, but this regression has **not run** in the current sandbox.
+
+A Chromium/Playwright attempt stopped before tests because its web server could not start; a direct Vite probe confirmed `listen EPERM: operation not permitted 127.0.0.1:3000`. Docker/proxy access and network-enabled validation/publication requests remain unconfirmed or blocked, so no current PostgreSQL/Flyway, browser, dependency-scan or remote CI pass is claimed. The last confirmed remote head is `8d295ed`; newer local commits must be published and validated before release.
+
+## Persistent feed retry increment (2026-11-10 UTC)
+
+Provider retry counts/deadlines now use PostgreSQL through a transactional row-locked adapter; isolated feed tests retain an in-memory adapter. V10 adds operational state without editing V1–V9 or resume data. Deadline epoch seconds/nanoseconds preserve extreme provider delays without overflowing PostgreSQL timestamp range. Invalid slugs are rejected before state or HTTP access.
+
+Local offline Maven execution passed **35 non-PostgreSQL tests**, including 9 feed/retry cases, using cached dependencies and a preloaded Mockito agent because dynamic self-attachment is blocked in this sandbox. The current shell sandbox denies both proxy and Docker-socket access, so fresh/upgrade migrations, Spring/database integration and full browser acceptance must run in GitHub Actions before this increment is marked verified. GitHub read operations remain available, but source publication through shell or connector has not been confirmed. See the PR for current CI state; no Mac/model acceptance is implied.
+
 ## Feed retry resilience increment (2026-11-09 UTC)
 
 Executed Java 21 Maven verify: **42 tests passed**, zero failures/errors/skips, including real PostgreSQL/REST/security/Flyway coverage. The **7 feed/retry tests** use controlled HTTP responses and a mutable clock, without sleeping or hitting live providers. They check bounded exponential delay, successful-response reset, HTTP 429/503 Retry-After seconds and RFC dates, malformed/past/overflowing delay values, preserved longer provider deadlines, independent healthy feeds and failed later-page retention.

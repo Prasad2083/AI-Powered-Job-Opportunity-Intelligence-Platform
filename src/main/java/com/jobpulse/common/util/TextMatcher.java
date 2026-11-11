@@ -13,21 +13,31 @@ public final class TextMatcher {
     private TextMatcher() {}
 
     public static double score(String a, String b) {
-        if (a == null || b == null) return 0.0;
-        Map<String, Double> fa = termFrequencies(a);
-        Map<String, Double> fb = termFrequencies(b);
+        return prepare(a).similarityTo(prepare(b));
+    }
 
-        // dot product
-        double dot = 0.0;
-        for (Map.Entry<String, Double> e : fa.entrySet()) {
-            Double v = fb.get(e.getKey());
-            if (v != null) dot += e.getValue() * v;
+    public static PreparedText prepare(String text) {
+        return new PreparedText(text == null ? Map.of() : termFrequencies(text));
+    }
+
+    /** Immutable per-request text representation; never held in a shared user cache. */
+    public static final class PreparedText {
+        private final Map<String,Double> terms;
+        private final double magnitude;
+        private PreparedText(Map<String,Double> terms) {
+            this.terms=Map.copyOf(terms);
+            this.magnitude=norm(terms);
         }
 
-        double na = norm(fa);
-        double nb = norm(fb);
-        if (na == 0 || nb == 0) return 0.0;
-        return dot / (na * nb);
+        public double similarityTo(PreparedText other) {
+            if(other==null || magnitude==0 || other.magnitude==0) return 0;
+            double dot=0;
+            for(var entry:terms.entrySet()) {
+                Double value=other.terms.get(entry.getKey());
+                if(value!=null) dot+=entry.getValue()*value;
+            }
+            return dot/(magnitude*other.magnitude);
+        }
     }
 
     private static Map<String, Double> termFrequencies(String text) {

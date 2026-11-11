@@ -56,8 +56,11 @@ public class TailoringController {
         Long uid=users.findByUsername(auth.getName()).orElseThrow().getId();
         var resume=resumes.findById(input.resumeId()).filter(r->r.getUserId().equals(uid))
             .orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Resume missing"));
-        jobs.findVisible(uid).stream().filter(j->j.getId().equals(input.jobId())).findFirst()
-            .orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Job missing"));
+        // Existing owned provenance stays usable when a provider archives a listing.
+        // Unanchored saves still require a currently visible job.
+        if(input.taskId()==null && input.sourceDocumentId()==null)
+            jobs.findVisibleById(input.jobId(),uid)
+                .orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Job missing"));
         var document=new com.jobpulse.domain.entity.TailoredDocument();
         document.setUserId(uid);document.setResumeId(resume.getId());document.setJobId(input.jobId());
         document.setContent(input.content());

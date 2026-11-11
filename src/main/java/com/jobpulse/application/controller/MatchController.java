@@ -1,6 +1,6 @@
 package com.jobpulse.application.controller;
 
-import com.jobpulse.common.util.TextMatcher;
+import com.jobpulse.common.util.JobMatcher;
 import com.jobpulse.domain.entity.Job;
 import com.jobpulse.domain.entity.Resume;
 import com.jobpulse.domain.repository.JobRepository;
@@ -26,12 +26,15 @@ public class MatchController {
         var user=users.findByUsername(auth.getName()).orElseThrow();
         Long uid=user.getId();
         Resume resume=resumes.findFirstByUserIdAndIsPrimaryTrue(uid).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"Upload a resume first"));
+        var matching=JobMatcher.prepare(resume.getContentText(),
+            user.getTargetRoles()==null?"Senior Quality Engineer,Lead Quality Engineer,SDET,Test Automation Engineer,Backend Java Developer,AI Quality Engineer":user.getTargetRoles(),
+            user.getTargetLocations()==null?"Toronto,Greater Toronto Area,Remote Canada,Hybrid":user.getTargetLocations());
         List<Map<String,Object>> results=new ArrayList<>();
         for (Job job : jobs.findVisible(uid)) {
             Map<String,Object> result=new LinkedHashMap<>();
             result.put("jobId",job.getId()); result.put("title",job.getTitle()); result.put("company",job.getCompanyName());
             result.put("lastSeenAt",job.getLastSeenAt()); result.put("applyUrl",job.getApplyUrl()); result.put("source",job.getSource().getName());
-            result.putAll(com.jobpulse.common.util.JobMatcher.evaluate(resume.getContentText(),job.getTitle(),job.getJobDescription(),job.getLocation(),user.getTargetRoles()==null?"Senior Quality Engineer,Lead Quality Engineer,SDET,Test Automation Engineer,Backend Java Developer,AI Quality Engineer":user.getTargetRoles(),user.getTargetLocations()==null?"Toronto,Greater Toronto Area,Remote Canada,Hybrid":user.getTargetLocations())); result.put("status","REVIEW_REQUIRED");
+            result.putAll(matching.evaluate(job.getTitle(),job.getJobDescription(),job.getLocation())); result.put("status","REVIEW_REQUIRED");
             results.add(result);
         }
         results.sort((a,b)->Double.compare((Double)b.get("score"),(Double)a.get("score")));

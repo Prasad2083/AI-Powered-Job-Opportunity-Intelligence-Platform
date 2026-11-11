@@ -200,6 +200,9 @@ class DatabaseStartupTest {
             var bobWork=taskQueue.claim().orElseThrow();
             database.update("UPDATE resumes SET content_text='Bob changed his editable resume' WHERE id=?",bob.resumeId());
             taskQueue.complete(bobWork.id(),bobWork.original(),null);
+            database.update("UPDATE jobs SET is_archived=true WHERE id=?",bob.jobId());
+            mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/tailoring/tasks/"+bob.jobId()).header("Authorization","Bearer "+bob.token()))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isNotFound());
             String body=mapper.writeValueAsString(java.util.Map.of("resumeId",bob.resumeId(),"jobId",bob.jobId(),"content",bobWork.original(),"approved",false,"taskId",second.id()));
             var saved=mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/tailoring/documents").header("Authorization","Bearer "+bob.token()).contentType("application/json").content(body))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk())
@@ -292,5 +295,34 @@ class DatabaseStartupTest {
             org.junit.jupiter.api.Assertions.assertEquals(429,failure.getStatusCode().value());
             org.junit.jupiter.api.Assertions.assertEquals(20L,database.queryForObject("SELECT count(*) FROM tailoring_tasks",Long.class));
         } finally { database.update("DELETE FROM tailoring_tasks"); }
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired com.jobpulse.infrastructure.adapter.FeedRetryStateStore persistentRetry;
+
+    @Test void feedRetryStateSurvivesRecreationAndSerializesConcurrentFailures() throws Exception {
+        String source="TEST:persistent-retry";
+        var now=java.time.Instant.parse("2026-11-10T12:00:00.123456789Z");
+        try {
+            persistentRetry.recordFailure(source,now,null);
+            var recreated=new com.jobpulse.infrastructure.adapter.JdbcFeedRetryStateStore(database);
+            var first=recreated.find(source).orElseThrow();
+            org.junit.jupiter.api.Assertions.assertEquals(1,first.attempts());
+            org.junit.jupiter.api.Assertions.assertEquals(now.plusSeconds(60),first.nextAttempt());
+            persistentRetry.recordFailure(source,now.plusSeconds(60),java.time.Instant.MAX);
+            org.junit.jupiter.api.Assertions.assertEquals(java.time.Instant.MAX,recreated.find(source).orElseThrow().nextAttempt());
+            try(var executor=java.util.concurrent.Executors.newFixedThreadPool(2)) {
+                var start=new java.util.concurrent.CountDownLatch(1);
+                java.util.concurrent.Callable<Void> failure=()-> { start.await(); persistentRetry.recordFailure(source,now.plusSeconds(120),null);return null; };
+                var a=executor.submit(failure);var b=executor.submit(failure);start.countDown();
+                a.get(10,java.util.concurrent.TimeUnit.SECONDS);b.get(10,java.util.concurrent.TimeUnit.SECONDS);
+            }
+            var after=recreated.find(source).orElseThrow();
+            org.junit.jupiter.api.Assertions.assertEquals(4,after.attempts());
+            org.junit.jupiter.api.Assertions.assertEquals(java.time.Instant.MAX,after.nextAttempt());
+            persistentRetry.clear(source);
+            org.junit.jupiter.api.Assertions.assertTrue(recreated.find(source).isEmpty());
+            persistentRetry.recordFailure(source,now,null);
+            org.junit.jupiter.api.Assertions.assertEquals(1,recreated.find(source).orElseThrow().attempts());
+        } finally { persistentRetry.clear(source); }
     }
 }

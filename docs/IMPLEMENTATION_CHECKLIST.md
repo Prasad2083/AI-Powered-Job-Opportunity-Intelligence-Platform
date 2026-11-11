@@ -40,11 +40,14 @@ Baseline: existing development branch `feature/production-workflow-20261027`, PR
 - [x] Separate location and source-type filters, a recently-seen public-feed option and 20-row job paging; filters reset the page safely.
 - [x] Frontend filtering by title/company/location; configurable role/location ranking preferences with Toronto/GTA/remote Canada/hybrid defaults.
 - [x] Deterministic explained ranking: skill evidence, resume text, title preferences, seniority keywords, explicit experience-year mentions and location keywords.
+- [x] Matching prepares immutable resume/preferences/text vectors once per request; local tests cover repeated/concurrent calls and user isolation, with 576 pre-refactor parity scenarios. No shared user cache or measured latency claim. Current integration/publication gates remain pending.
+- [x] Known skill spellings normalize to canonical names (C#, REST-Assured, Postgres, K8s); Unicode whitespace, boundaries and locale behavior have offline parser/matcher tests. UI labels detections as text mentions, not proof of proficiency.
 - [x] Missing evidence is labeled for review, not asserted as a genuine skill deficiency. Date ranges are not invented into experience totals.
 - [x] Live HTTP checks of default boards, including Toronto listings in both selected Lever feeds.
 - [ ] Semantic verification of mandatory qualifications, overlapping work-history calculations, geographic/work-authorization eligibility and embeddings. All eligibility remains subject to human review.
-- [x] Per-employer feed retry deferral with bounded exponential backoff, HTTP 429/503 Retry-After seconds/date support, success reset and independent healthy-feed refresh. Deferral never marks a source checked or archives its listings. Backoff state is in memory and resets on restart.
-- [ ] Persistent retry/ingestion state, large-dataset paging/index tuning and ingestion operational metrics.
+- [x] Per-employer feed retry deferral with bounded exponential backoff, HTTP 429/503 Retry-After seconds/date support, success reset and independent healthy-feed refresh. Deferral never marks a source checked or archives its listings. Basic backoff was initially tested in memory; persistent-state verification is tracked below.
+- [ ] Persistent provider retry state is implemented with additive V10 migration, pending real PostgreSQL/CI verification in this increment.
+- [ ] Durable queued ingestion, large-dataset paging/index tuning and ingestion operational metrics.
 
 ## Tailoring and applications
 
@@ -53,6 +56,7 @@ Baseline: existing development branch `feature/production-workflow-20261027`, PR
 - [x] Local Ollama `qwen3:4b` protocol; no paid AI dependency.
 - [x] Source-constrained generation: model proposes line references; server validates them and emits only original excerpts plus the unchanged original text. Arbitrary model prose never becomes a professional claim.
 - [x] Editable drafts, explicit document approval, immutable saved versions and TXT downloads. Editing clears prior approval in the UI.
+- [ ] Archived-listing draft preservation is implemented and covered by local controller tests; current PostgreSQL REST/browser/CI acceptance and publication remain pending. Existing owned provenance is required; new generation and unanchored saves still require an active visible job.
 - [x] Official application links and explicitly confirmed manual completion; `USER_REPORTED_*`, never provider-confirmed status.
 - [x] Duplicate manual record prevention under a per-user database lock; history, readable status labels, status filtering and editable follow-up notes.
 - [x] In-page manual completion requires a confirmation checkbox; it never claims provider confirmation.
@@ -81,5 +85,7 @@ Baseline: existing development branch `feature/production-workflow-20261027`, PR
 - [x] User reports the application launches and works on their Mac.
 - [ ] Independent hardware-specific Docker Desktop/Apple Silicon and real-model acceptance; Linux checks and user-reported startup do not establish all native workflows.
 - [ ] Release approval and merge: keep draft until outstanding release gates and current CI are reviewed. No public deployment performed.
+
+QAAnywhere-inspired improvements and pre-hosting confidentiality gates are planned in [BACKLOG.md](BACKLOG.md). They are not completed features or additions to the current release commitment.
 
 Executed results and reproducible commands are in [VERIFICATION.md](VERIFICATION.md). Future features are not silently treated as finished.

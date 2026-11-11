@@ -33,3 +33,7 @@ Normal document ownership and review requirements still apply. No task submits a
 ## Verification
 
 Run `mvn verify`, frontend `npm test` / `npm run build`, and `bash scripts/run-full-stack-e2e.sh` with Docker available and its test ports free. Database tests disable the scheduled worker and explicitly exercise its state transitions; the browser runner uses the real scheduled worker and an explicitly mocked Ollama protocol server. See [verification evidence](VERIFICATION.md) for counts and limits.
+
+## Archived listings (local increment; integration verification pending)
+
+A previously completed owned task or saved version can be used to save a new version even after its listing is archived. The server validates matching user/resume/job provenance and retains the original source snapshot. This does not reopen the vacancy, permit a fresh task for an archived job or claim an application was submitted. Unanchored saves still require a visible active job. Local controller regressions pass; see the current verification/publication gate before treating this as an accepted release feature.

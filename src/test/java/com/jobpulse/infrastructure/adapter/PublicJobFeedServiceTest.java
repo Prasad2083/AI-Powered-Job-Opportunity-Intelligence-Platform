@@ -68,4 +68,31 @@ class PublicJobFeedServiceTest {
         var failed=feeds.fetchReport();assertTrue(failed.jobs().isEmpty());assertTrue(failed.successfulSources().isEmpty());
         assertTrue(feeds.fetchReport().successfulSources().isEmpty());server.verify();
     }
+
+    @Test void invalidEmployerSlugsNeverReachHttpOrPersistentState() {
+        var builder=RestClient.builder();var server=MockRestServiceServer.bindTo(builder).build();
+        var store=new FeedRetryStateStore() {
+            public java.util.Optional<Failure> find(String source) { throw new AssertionError("Invalid slug reached state lookup"); }
+            public void recordFailure(String source,java.time.Instant now,java.time.Instant provider) { throw new AssertionError("Invalid slug reached state write"); }
+            public void clear(String source) { throw new AssertionError("Invalid slug reached state reset"); }
+        };
+        var feed=new PublicJobFeedService(builder.build(),"invalid/slug,"+"x".repeat(101),"../invalid",new FeedRetryPolicy(new MutableFeedClock(),store));
+        var report=feed.fetchReport();
+        assertEquals(3,report.failures().size());assertTrue(report.successfulSources().isEmpty());
+        server.verify();
+    }
+
+    @Test void failedRetryStateResetDoesNotMarkTheFeedSuccessfullyChecked() {
+        var builder=RestClient.builder();var server=MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo("https://boards-api.greenhouse.io/v1/boards/example/jobs?content=true"))
+            .andRespond(withSuccess("{\"jobs\":[]}",MediaType.APPLICATION_JSON));
+        var store=new FeedRetryStateStore() {
+            public java.util.Optional<Failure> find(String source) { return java.util.Optional.empty(); }
+            public void recordFailure(String source,java.time.Instant now,java.time.Instant provider) {}
+            public void clear(String source) { throw new IllegalStateException("Fixture state reset failure"); }
+        };
+        var feed=new PublicJobFeedService(builder.build(),"example","",new FeedRetryPolicy(new MutableFeedClock(),store));
+        var report=feed.fetchReport();assertTrue(report.successfulSources().isEmpty());
+        assertTrue(report.failures().containsKey("GREENHOUSE:example"));server.verify();
+    }
 }

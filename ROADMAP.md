@@ -1,5 +1,7 @@
 > Historical design/status document. For current behavior and verified acceptance, use [README](README.md), [implementation checklist](docs/IMPLEMENTATION_CHECKLIST.md), and [verification](docs/VERIFICATION.md). Earlier completion claims and startup instructions below are not release evidence.
 
+Current planned increments: [prioritized product and hosting backlog](docs/BACKLOG.md). The historical phases below do not mark those items complete.
+
 # Development Roadmap
 
 ## 📅 Phase-by-Phase Breakdown

@@ -12,3 +12,9 @@ When cloud hosting is explicitly requested and approved:
 6. Add ingestion queues, provider-aware retries/metrics, resource limits, security headers and dependency/secret monitoring. Recheck the two current Spring MVC applicability reviews or patch when possible.
 7. Implement authorized application adapters only after provider permission, explicit user eligibility/approval rules and receipt reconciliation exist. Cloud hosting does not confer submission authorization.
 8. Deploy to a private test environment, verify data isolation and rollback/restore, then request any public release approval with concrete evidence.
+
+## Source confidentiality and public interfaces
+
+Before any public release, complete JP-301 through JP-304 in [the hosting backlog](BACKLOG.md). The implementation repository was confirmed public on 2026-11-10; decide repository visibility separately from hosting. No visibility change has been performed.
+
+Browser-delivered frontend code and client-facing API requests are observable. Backend source and execution, secrets, database/model services and management interfaces belong behind server/network access controls. Do not put credentials in Vite variables or browser bundles. Restrict production diagnostics, keep private resources owner-authorized and review source maps/build artifacts. These are planned release gates, not a claim that a public-hosting security review has passed.
