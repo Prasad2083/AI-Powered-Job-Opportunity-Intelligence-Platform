@@ -1,16 +1,16 @@
 # Release status: tested development candidate; Mac/model acceptance remains open
 
-Published application increment **`68dac00`** and workflow follow-up **`5c5795f`** to the existing feature branch on November 11 without force. Published trees exactly matched local trees; original granular development commits remain preserved in merged local history and preservation branches. No existing work, historical migration or original resume was discarded.
+Earlier application increment **`68dac00`** and workflow follow-up **`5c5795f`** were published to the existing feature branch on November 11 without force. Published trees exactly matched local trees; original granular development commits remain preserved in merged local history and preservation branches. No existing work, historical migration or original resume was discarded.
 
-## Current resume editor increment (CI pending)
+## Current verified editor and matching candidate
 
-Preview requests now honor the latest selection, and saves protect the exact draft from in-page overwrites. Failed saves retain text for retry. Local **21 frontend component tests** and production build passed. Browser tests include delayed failure/retry and real-stack save/reopen/original-byte verification, but are not yet executed. No backend, dependency or migration changes. See [editing safeguards](docs/RESUME_EDITING.md). Cross-tab conflicts and unsaved navigation protection remain incomplete.
+Published **`43865f1`** includes resume editor race safeguards and explicit-denial matching fix **`10a7ff3`**. [CI run 43237018570](https://github.com/Prasad2083/AI-Powered-Job-Opportunity-Intelligence-Platform/actions/runs/43237018570) passed all four jobs: **77 backend tests** (13 PostgreSQL/REST), fresh V1–V11 and V3→V11 preserved-resume upgrades, **21 frontend tests**, production build/npm audit 0, and **9 full-stack browser tests**. OSV scanned 160 dependencies with 0 unreviewed/actionable findings; two applicability reviews remain visible. Shell syntax passed.
 
-## Current matching increment (CI pending)
+The browser flow verifies denied-skill review, saved extracted text after reopening, and unchanged original download bytes. Failed saves retain drafts; superseded previews cannot replace the latest selection. See [editing safeguards](docs/RESUME_EDITING.md) and [skill evidence](docs/SKILL_EVIDENCE.md). Cross-tab conflicts, unsaved navigation and full semantic eligibility remain incomplete. The older matching CI run stayed queued; current combined source acceptance comes from the successful run above, not an invented completion of that old run.
 
-A narrow explicit-denial fix withholds skill-component credit for statements such as “No experience with Java”, including conflicting mentions elsewhere, and exposes a review prompt. Local **64 backend** and **17 frontend** tests plus production build passed; PostgreSQL/browser CI acceptance is pending. This is not full semantic eligibility or free-form factual rewriting. See [skill evidence](docs/SKILL_EVIDENCE.md).
+Local frontend tests/build passed; a fresh local Vite probe failed `listen EPERM 127.0.0.1:3000`, so browser/database acceptance came from CI. Mac/model acceptance, historical credential rotation and release-scope approval remain open. No main merge, deployment or real submission occurred.
 
-## Current verified candidate
+## Earlier discovery candidate (superseded by combined source above)
 
 [CI run 43035912511](https://github.com/Prasad2083/AI-Powered-Job-Opportunity-Intelligence-Platform/actions/runs/43035912511) passed all four jobs on `5c5795f`:
 

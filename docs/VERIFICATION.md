@@ -2,13 +2,26 @@
 
 Environment: managed Linux cloud workspace, Java 21 JDK, Maven 3.9.9, PostgreSQL 16 Docker containers, Node/npm and Chromium. Date: 2026-10-28. Repository baseline `9ada487`; see git history for the resulting implementation commits.
 
-## Resume editor request/save race increment (2026-11-11; CI pending)
+## Combined matching/editor CI acceptance
+
+Published **`43865f1`** includes the editor increment and unchanged explicit-denial matching source from **`10a7ff3`**. [CI run 43237018570](https://github.com/Prasad2083/AI-Powered-Job-Opportunity-Intelligence-Platform/actions/runs/43237018570) passed **all four jobs**:
+
+- Java 21 Maven: **77 tests passed**, zero failures/errors/skips, including **13 real PostgreSQL/REST integration tests**. The new matching REST case verifies withheld Java skill credit and preserved original bytes/text. Existing authentication/ownership, durable queue/recovery, retry and source-constrained model tests also passed.
+- Fresh Flyway **V1–V11** and historical **V3→V11** upgrade passed, preserving original resume text. Neither increment changes a migration or dependency.
+- Frontend: **21 component tests passed**, production build passed, npm audit **0 vulnerabilities**.
+- Full-stack browser job: **9 tests passed**. Added a delayed mocked save/failure/retry scenario; the real backend/PostgreSQL flow verifies the denial review prompt, edited-text save/reopen, and unchanged original download bytes. Only Ollama is mocked in the real-stack flow; standalone scenarios use explicit API fixtures. Responsive checks run at 1440px/390px/320px.
+- Standalone frontend browser job separately passed **8 scenarios**, intentionally skipping the real-API scenario executed by the full-stack job. These are overlapping runs, not 17 distinct full-stack tests.
+- OSV scanned **160 dependencies**, **0 unreviewed/actionable findings**; the two existing Spring MVC non-applicability reviews remain visible, not patched or erased. Launcher syntax passed. No real job submission occurred.
+
+The older standalone matching run 43095411148 remained queued when inspected. Its pending state is superseded for application acceptance by the combined source/run above; it is not described as a completed run. Local browser server startup was independently retried and failed with `listen EPERM 127.0.0.1:3000`; CI supplied the actual browser/database evidence. Native Mac/model, historical credential rotation, cross-tab editing, unsaved navigation, broader semantic eligibility and free-form factual rewriting remain open.
+
+## Resume editor local evidence (superseded by combined CI acceptance above)
 
 Superseded previews are aborted and their late responses ignored. Open editors block competing preview/upload/primary changes; save freezes the editor and Cancel, then closes on success or retains text on failure. No backend/migration/dependency changes. Cross-tab conflicts, navigation guards and offline persistence remain incomplete; see [editing safeguards](RESUME_EDITING.md).
 
-Executed locally: **21 frontend component tests passed**, zero failures, production frontend build and whitespace checks passed. New tests cover out-of-order previews, the exact saved resume/text, mutation locking, failure/retry draft retention and abort on unmount. Added a delayed mocked-browser save/failure scenario and extended real-stack save/reopen/original-byte assertions; browser execution is pending. Backend checks were not rerun for this frontend-only increment; earlier 64 local non-PostgreSQL tests remain prior evidence. The previous matching CI run 43095411148 is still queued with no jobs started, so its new PostgreSQL/Flyway/browser/dependency acceptance is not claimed.
+Executed locally: **21 frontend component tests passed**, zero failures, production frontend build and whitespace checks passed. New tests cover out-of-order previews, the exact saved resume/text, mutation locking, failure/retry draft retention and abort on unmount. Added a delayed mocked-browser save/failure scenario and extended real-stack save/reopen/original-byte assertions; browser execution subsequently passed in the combined CI run above. Backend checks were not rerun for this frontend-only increment; earlier 64 local non-PostgreSQL tests remain prior evidence. The previous matching CI run 43095411148 is still queued with no jobs started, so its new PostgreSQL/Flyway/browser/dependency acceptance is not claimed.
 
-## Explicit skill denial increment (2026-11-11; CI pending)
+## Explicit skill denial local evidence (superseded by combined CI acceptance above)
 
 Recognized resume denials now withhold skill credit, including contradictory mentions, and appear in an additive `skillsRequiringContextReview` field and the Matches explanation. Existing API detection remains dictionary-based; no semantic eligibility or whole-score negation filtering is claimed. Original resume text/bytes, scoring weights and migrations are unchanged. See [limitations](SKILL_EVIDENCE.md).
 

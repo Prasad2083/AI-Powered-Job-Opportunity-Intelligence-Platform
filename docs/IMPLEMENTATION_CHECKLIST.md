@@ -22,7 +22,7 @@ Baseline: existing development branch `feature/production-workflow-20261027`, PR
 - [x] Store original upload bytes independently from editable extracted text; authorized download.
 - [x] Preview/edit extracted text and select a primary resume; primary mutations serialize on the user row.
 - [x] Replacement by new upload retains prior originals and selects the new resume for matching.
-- [ ] Resume preview/save race safeguards implemented: latest preview wins, open-editor mutations are gated, saving freezes edits, failed saves retain text. Local component/build checks passed; browser CI pending. See [editing safeguards](RESUME_EDITING.md).
+- [x] Resume preview/save race safeguards: latest preview wins, open-editor mutations are gated, saving freezes edits, failed saves retain text. Component and browser checks passed in CI run 43237018570. See [editing safeguards](RESUME_EDITING.md).
 - [ ] Cross-tab optimistic edit conflicts and unsaved navigation/offline draft persistence.
 - [ ] Recover original bytes for historical uploads: impossible if the old application never retained them; re-upload required.
 - [x] Saved tailored drafts export as Word/DOCX with readable paragraph formatting and Unicode content; ownership and text round-trip checks pass. TXT export remains available.
@@ -47,7 +47,7 @@ Baseline: existing development branch `feature/production-workflow-20261027`, PR
 - [x] Known skill spellings normalize to canonical names (C#, REST-Assured, Postgres, K8s); Unicode whitespace, boundaries and locale behavior have offline parser/matcher tests. UI labels detections as text mentions, not proof of proficiency.
 - [x] Missing evidence is labeled for review, not asserted as a genuine skill deficiency. Date ranges are not invented into experience totals.
 - [x] Live HTTP checks of default boards, including Toronto listings in both selected Lever feeds.
-- [ ] Explicit skill-denial credit fix implemented with narrow English patterns, conflict withholding and visible review prompts; local tests passed, PostgreSQL/browser CI acceptance pending. See [skill evidence](SKILL_EVIDENCE.md).
+- [x] Explicit skill-denial credit fix with narrow English patterns, conflict withholding and visible review prompts; parser/matcher, PostgreSQL REST/original-preservation and browser checks passed in CI run 43237018570. See [skill evidence](SKILL_EVIDENCE.md).
 - [ ] Semantic verification of mandatory qualifications, overlapping work-history calculations, geographic/work-authorization eligibility and embeddings. All eligibility remains subject to human review.
 - [x] Per-employer feed retry deferral with bounded exponential backoff, HTTP 429/503 Retry-After seconds/date support, success reset and independent healthy-feed refresh. Deferral never marks a source checked or archives its listings. Basic backoff was initially tested in memory; persistent-state verification is tracked below.
 - [x] Persistent provider retry state with additive V10 migration: real PostgreSQL/CI verifies store recreation, concurrent failure updates, exact/extreme deadlines and success reset.
@@ -96,7 +96,7 @@ Executed results and reproducible commands are in [VERIFICATION.md](VERIFICATION
 
 ## November 15 local release gates (updated November 11)
 
-- [x] Ingestion application source `68dac00` with CI follow-up `5c5795f` passes backend, PostgreSQL/Flyway, browser and dependency checks in CI run 43035912511; evidence recorded in VERIFICATION.md. Recheck current head before release.
+- [x] Combined application source `43865f1` passes all four jobs in CI run 43237018570: 77 backend tests (13 PostgreSQL/REST), 21 frontend tests, 9 full-stack browser tests and dependency checks. Evidence is in VERIFICATION.md; recheck current head before release.
 - [ ] On the user's Mac, pull the feature branch, stop the prior backend and launch with the existing PostgreSQL volume; confirm login, upload/original download, background discovery after reload, matching, draft/version download and reported application history. See MAC_LOCAL_SETUP.md and BACKGROUND_DISCOVERY.md.
 - [ ] Run actual local Qwen3 4B against a real owned resume/job; review factual accuracy and acceptable latency/memory. Mocked model protocol checks do not satisfy this gate.
 - [ ] Owner confirms assessment/rotation of any real historical credentials; no values should be shared in chat.
