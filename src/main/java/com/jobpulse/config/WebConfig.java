@@ -16,6 +16,29 @@ import java.util.concurrent.Executor;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
+    @Bean(name="ingestionScheduler")
+    public org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler ingestionScheduler() {
+        var scheduler=new org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler();
+        scheduler.setPoolSize(1);scheduler.setThreadNamePrefix("jobpulse-ingestion-");
+        return scheduler;
+    }
+
+    @Bean(name="tailoringScheduler")
+    public org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler tailoringScheduler() {
+        var scheduler=new org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler();
+        scheduler.setPoolSize(1);
+        scheduler.setThreadNamePrefix("jobpulse-tailoring-");
+        return scheduler;
+    }
+
+    @Bean(name="taskScheduler")
+    public org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler taskScheduler() {
+        var scheduler=new org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler();
+        scheduler.setPoolSize(1);
+        scheduler.setThreadNamePrefix("jobpulse-maintenance-");
+        return scheduler;
+    }
+
     /**
      * Configure async executor for background tasks like
      * job ingestion, embeddings generation, and notifications.

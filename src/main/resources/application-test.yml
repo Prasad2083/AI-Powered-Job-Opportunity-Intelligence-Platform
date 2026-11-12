@@ -1,18 +1,12 @@
+# Integration tests supply an isolated PostgreSQL 16 datasource via Testcontainers.
+# Do not replace Flyway with Hibernate schema creation or an incompatible H2 schema.
 spring:
   jpa:
     hibernate:
-      ddl-auto: create-drop
-  datasource:
-    url: jdbc:h2:mem:testdb
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
-  h2:
-    console:
-      enabled: true
-
+      ddl-auto: validate
+  flyway:
+    enabled: true
 logging:
   level:
     root: WARN
     com.jobpulse: INFO
-

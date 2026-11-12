@@ -1,0 +1,13 @@
+# Skill evidence and explicit denials
+
+Matching remains a dictionary/text ranking aid, not verified eligibility or proficiency. Previously, a resume sentence such as “No experience with Java” earned the same Java skill credit as a plain mention. The matcher now withholds skill-component credit for recognized explicit denials and returns `skillsRequiringContextReview` for affected skills mentioned by the job.
+
+Recognized English patterns include “no experience with/in”, “do not/don't/don’t have experience with/in”, “never used/worked with”, “unfamiliar with”, and “not experienced/proficient/familiar/skilled with/in”. A direct skill name or dictionary-only comma/and/or/slash/ampersand list is supported, including existing aliases (C#, REST-Assured, Postgres, K8s). Scope stops when the known-skill list ends; another sentence or unrelated clause is not absorbed.
+
+If a resume contains both an explicit denial and another mention, that skill is conservatively withheld until the user reviews the source and corrects ambiguity if appropriate. It is not called a proven skill gap. The Matches explanation lists affected job skills under **Explicit denial or conflicting skill mentions — review required**. `skillsNotEvidenced` retains its API name and now means absent or withheld evidence; the UI says **Job skills not credited**. Existing clients can ignore the additive review field.
+
+Limitations: these are narrow English patterns, not full negation or semantic qualification analysis. Unknown words between the denial and a skill, lists containing unknown tools, paraphrases, suffix negation, chronology, quoted requirements, double negatives and non-English statements may be missed or need manual correction. A non-denied mention does not establish professional use. The unchanged resume text can still affect the 15% text-similarity component; withholding applies to the 45% skill component, not a claim that all score influences have been semantically filtered. Job-side mandatory/preferred/negative requirement classification remains incomplete.
+
+No original/editable resume, tailored document or database migration is changed by evaluation. Evidence is immutable within an authenticated matching request, with fresh result sets per job; no shared user cache is introduced. Tailoring stays source-constrained and real applications remain disabled.
+
+Tests cover direct denials, supported lists/aliases, clause boundaries, positive phrases, contradictory mentions, per-job/mutation isolation, unchanged originals, API output and the visible review prompt. See [verification](VERIFICATION.md) for executed results and remaining acceptance gates.

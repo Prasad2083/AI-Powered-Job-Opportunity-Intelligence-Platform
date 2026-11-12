@@ -9,6 +9,15 @@ import java.util.regex.Pattern;
 public final class ResumeParser {
 
     private static final Map<String, String> SKILL_CATEGORIES = new HashMap<>();
+    private static final Map<String, Pattern> SKILL_PATTERNS = new HashMap<>();
+    private static final Map<String, List<String>> ALIASES = Map.of(
+        "csharp", List.of("c#", "c sharp", "c-sharp"),
+        "rest assured", List.of("restassured", "rest-assured"),
+        "postgresql", List.of("postgres"),
+        "kubernetes", List.of("k8s")
+    );
+
+    private static final Pattern EXPLICIT_DENIAL;
 
     static {
         // Languages
@@ -39,6 +48,8 @@ public final class ResumeParser {
         SKILL_CATEGORIES.put("elasticsearch", "Databases");
         SKILL_CATEGORIES.put("cassandra", "Databases");
 
+        for (String skill : List.of("selenium", "playwright", "cypress", "junit", "testng", "rest assured", "appium", "cucumber", "postman", "jmeter", "k6", "pytest", "ollama", "pytorch"))
+            SKILL_CATEGORIES.put(skill,"Testing and AI");
         // Tools & Platforms
         SKILL_CATEGORIES.put("docker", "Tools");
         SKILL_CATEGORIES.put("kubernetes", "Tools");
@@ -48,6 +59,42 @@ public final class ResumeParser {
         SKILL_CATEGORIES.put("azure", "Tools");
         SKILL_CATEGORIES.put("gcp", "Tools");
         SKILL_CATEGORIES.put("terraform", "Tools");
+
+        for (String skill : SKILL_CATEGORIES.keySet()) {
+            var names = new ArrayList<String>();
+            names.add(skill);
+            names.addAll(ALIASES.getOrDefault(skill, List.of()));
+            String alternatives = names.stream().map(ResumeParser::phrasePattern)
+                .collect(java.util.stream.Collectors.joining("|"));
+            // Word boundaries alone fail for punctuation-ended names such as C#.
+            SKILL_PATTERNS.put(skill, Pattern.compile("(?<![\\p{L}\\p{N}_])(?:" + alternatives + ")(?![\\p{L}\\p{N}_])",
+                Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE | Pattern.UNICODE_CHARACTER_CLASS));
+        }
+
+        // Deliberately narrow: an explicit denial followed by known skill names.
+        // Longest-first avoids treating Spring Boot as just Spring in a list.
+        var names = new HashSet<String>(SKILL_CATEGORIES.keySet());
+        ALIASES.values().forEach(names::addAll);
+        String skill = names.stream().sorted(Comparator.comparingInt(String::length).reversed())
+            .map(ResumeParser::phrasePattern).collect(java.util.stream.Collectors.joining("|"));
+        skill = "(?<![\\p{L}\\p{N}_])(?:" + skill + ")(?![\\p{L}\\p{N}_])";
+        String separator = "[ \\t]*(?:,[ \\t]*(?:(?:and|or)[ \\t]+)?|(?:and|or)[ \\t]+|[/&][ \\t]*)";
+        EXPLICIT_DENIAL = Pattern.compile(
+            "(?<![\\p{L}\\p{N}_])(?:no[ \\t]+experience[ \\t]+(?:with|in)|"
+            + "(?:do[ \\t]+not|don't|don’t)[ \\t]+have[ \\t]+experience[ \\t]+(?:with|in)|"
+            + "never[ \\t]+(?:used|worked[ \\t]+with)|unfamiliar[ \\t]+with|"
+            + "not[ \\t]+(?:experienced|proficient|familiar|skilled)[ \\t]+(?:with|in))"
+            + "[ \\t]+(?<skills>" + skill + "(?:" + separator + skill + ")*)",
+            Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE | Pattern.UNICODE_CHARACTER_CLASS);
+    }
+
+    /** Explicit denials only, not a semantic qualification or proficiency assessment. */
+    public static Set<String> explicitlyNegatedSkills(String text) {
+        if (text == null || text.isEmpty()) return Set.of();
+        var found = new TreeSet<String>();
+        var matcher = EXPLICIT_DENIAL.matcher(text);
+        while (matcher.find()) found.addAll(extractSkills(matcher.group("skills")).keySet());
+        return Set.copyOf(found);
     }
 
     private ResumeParser() {}
@@ -63,17 +110,19 @@ public final class ResumeParser {
             return foundSkills;
         }
 
-        String lowerText = resumeText.toLowerCase();
-
-        // Simple pattern: look for skill names surrounded by word boundaries
+        // Mentions only: context, proficiency and negation still require review.
         for (Map.Entry<String, String> skill : SKILL_CATEGORIES.entrySet()) {
-            Pattern pattern = Pattern.compile("\\b" + skill.getKey() + "\\b");
-            if (pattern.matcher(lowerText).find()) {
+            if (SKILL_PATTERNS.get(skill.getKey()).matcher(resumeText).find()) {
                 foundSkills.put(skill.getKey(), skill.getValue());
             }
         }
 
         return foundSkills;
+    }
+
+    private static String phrasePattern(String name) {
+        return Arrays.stream(name.split(" ")).map(Pattern::quote)
+            .collect(java.util.stream.Collectors.joining("\\s+"));
     }
 
     /**
@@ -89,9 +138,9 @@ public final class ResumeParser {
             "Full Stack", "Backend", "Frontend", "Mobile"
         };
 
-        String lowerText = resumeText.toLowerCase();
+        String lowerText = resumeText.toLowerCase(Locale.ROOT);
         for (String title : commonTitles) {
-            if (lowerText.contains(title.toLowerCase())) {
+            if (lowerText.contains(title.toLowerCase(Locale.ROOT))) {
                 titles.add(title);
             }
         }

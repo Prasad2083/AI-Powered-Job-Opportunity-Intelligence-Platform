@@ -8,6 +8,8 @@ import java.util.Optional;
 
 @Repository
 public interface ResumeRepository extends JpaRepository<Resume, Long> {
-    Optional<Resume> findFirstByActiveTrue();
+    Optional<Resume> findFirstByIsPrimaryTrue();
+    java.util.List<Resume> findByUserIdOrderByCreatedAtDesc(Long userId);
+    Optional<Resume> findFirstByUserIdAndIsPrimaryTrue(Long userId);
 }
 
