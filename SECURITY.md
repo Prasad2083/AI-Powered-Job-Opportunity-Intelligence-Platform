@@ -26,6 +26,10 @@ New refresh endpoints require authentication. Employer-feed run status is intent
 
 Narrow explicit-denial patterns now withhold skill credit rather than promoting every dictionary mention. Contradictory mentions are flagged for review; no qualification gap or verified proficiency is asserted. Analysis uses the owned resume already loaded by the authenticated controller, retains no shared user cache, and does not mutate originals or editable content. It does not sanitize text similarity or implement complete semantic/mandatory eligibility; the documented review limits still apply.
 
+## Resume editor review (2026-11-11)
+
+Latest-request preview handling and save-time mutation guards prevent in-page response races from replacing the active draft or closing an editor containing edits made after a save began. These are frontend workflow safeguards, not a replacement for server ownership checks. Original downloads/storage are unchanged. Cross-tab edit conflicts, navigation guards and offline persistence remain unimplemented; no stronger document versioning guarantee is claimed for editable extracted text.
+
 ## Dependency evidence
 
 The original resolved Maven scan had 36 affected packages. Spring Boot 3.5.16 plus supported patch overrides for Tomcat, PostgreSQL JDBC, Jackson, Log4j API and Commons Lang, updated PDFBox/POI/Commons IO, and removal of unused WebFlux reduced actionable findings to zero in the completed OSV scan. Frontend npm audit reports zero after Vite/test-tool upgrades.

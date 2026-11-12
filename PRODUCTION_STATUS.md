@@ -2,6 +2,10 @@
 
 Published application increment **`68dac00`** and workflow follow-up **`5c5795f`** to the existing feature branch on November 11 without force. Published trees exactly matched local trees; original granular development commits remain preserved in merged local history and preservation branches. No existing work, historical migration or original resume was discarded.
 
+## Current resume editor increment (CI pending)
+
+Preview requests now honor the latest selection, and saves protect the exact draft from in-page overwrites. Failed saves retain text for retry. Local **21 frontend component tests** and production build passed. Browser tests include delayed failure/retry and real-stack save/reopen/original-byte verification, but are not yet executed. No backend, dependency or migration changes. See [editing safeguards](docs/RESUME_EDITING.md). Cross-tab conflicts and unsaved navigation protection remain incomplete.
+
 ## Current matching increment (CI pending)
 
 A narrow explicit-denial fix withholds skill-component credit for statements such as “No experience with Java”, including conflicting mentions elsewhere, and exposes a review prompt. Local **64 backend** and **17 frontend** tests plus production build passed; PostgreSQL/browser CI acceptance is pending. This is not full semantic eligibility or free-form factual rewriting. See [skill evidence](docs/SKILL_EVIDENCE.md).

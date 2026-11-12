@@ -2,6 +2,12 @@
 
 Environment: managed Linux cloud workspace, Java 21 JDK, Maven 3.9.9, PostgreSQL 16 Docker containers, Node/npm and Chromium. Date: 2026-10-28. Repository baseline `9ada487`; see git history for the resulting implementation commits.
 
+## Resume editor request/save race increment (2026-11-11; CI pending)
+
+Superseded previews are aborted and their late responses ignored. Open editors block competing preview/upload/primary changes; save freezes the editor and Cancel, then closes on success or retains text on failure. No backend/migration/dependency changes. Cross-tab conflicts, navigation guards and offline persistence remain incomplete; see [editing safeguards](RESUME_EDITING.md).
+
+Executed locally: **21 frontend component tests passed**, zero failures, production frontend build and whitespace checks passed. New tests cover out-of-order previews, the exact saved resume/text, mutation locking, failure/retry draft retention and abort on unmount. Added a delayed mocked-browser save/failure scenario and extended real-stack save/reopen/original-byte assertions; browser execution is pending. Backend checks were not rerun for this frontend-only increment; earlier 64 local non-PostgreSQL tests remain prior evidence. The previous matching CI run 43095411148 is still queued with no jobs started, so its new PostgreSQL/Flyway/browser/dependency acceptance is not claimed.
+
 ## Explicit skill denial increment (2026-11-11; CI pending)
 
 Recognized resume denials now withhold skill credit, including contradictory mentions, and appear in an additive `skillsRequiringContextReview` field and the Matches explanation. Existing API detection remains dictionary-based; no semantic eligibility or whole-score negation filtering is claimed. Original resume text/bytes, scoring weights and migrations are unchanged. See [limitations](SKILL_EVIDENCE.md).

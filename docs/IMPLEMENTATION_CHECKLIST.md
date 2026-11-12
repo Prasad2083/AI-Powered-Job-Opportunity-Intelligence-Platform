@@ -22,6 +22,8 @@ Baseline: existing development branch `feature/production-workflow-20261027`, PR
 - [x] Store original upload bytes independently from editable extracted text; authorized download.
 - [x] Preview/edit extracted text and select a primary resume; primary mutations serialize on the user row.
 - [x] Replacement by new upload retains prior originals and selects the new resume for matching.
+- [ ] Resume preview/save race safeguards implemented: latest preview wins, open-editor mutations are gated, saving freezes edits, failed saves retain text. Local component/build checks passed; browser CI pending. See [editing safeguards](RESUME_EDITING.md).
+- [ ] Cross-tab optimistic edit conflicts and unsaved navigation/offline draft persistence.
 - [ ] Recover original bytes for historical uploads: impossible if the old application never retained them; re-upload required.
 - [x] Saved tailored drafts export as Word/DOCX with readable paragraph formatting and Unicode content; ownership and text round-trip checks pass. TXT export remains available.
 - [ ] OCR for image-only PDFs (currently rejected with a useful error) and formatted PDF export.

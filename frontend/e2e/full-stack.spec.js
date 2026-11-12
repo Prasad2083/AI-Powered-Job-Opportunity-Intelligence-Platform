@@ -75,8 +75,17 @@ test('registration through manual application history against real API and Postg
   await page.getByRole('button',{name:'Resumes',exact:true}).click();
   await page.getByRole('button',{name:'Preview / edit text'}).click();
   await expect(page.getByRole('textbox',{name:'Resume text'})).toHaveValue(original);
+  const updatedText = original+'\nUser-reviewed local edit.';
+  await page.getByRole('textbox',{name:'Resume text'}).fill(updatedText);
+  await expect(page.getByRole('button',{name:'Preview / edit text'})).toBeDisabled();
+  await page.getByRole('button',{name:'Save changes',exact:true}).click();
+  await expect(page.getByText('Extracted text saved. Your uploaded original is unchanged.',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Preview / edit text'}).click();
+  await expect(page.getByRole('textbox',{name:'Resume text'})).toHaveValue(updatedText);
   const download=page.waitForEvent('download');await page.getByRole('button',{name:'Download original'}).click();
-  expect((await download).suggestedFilename()).toBe('browser-cv.txt');
+  const originalDownload = await download;
+  expect(originalDownload.suggestedFilename()).toBe('browser-cv.txt');
+  expect(await fs.readFile(await originalDownload.path(),'utf8')).toBe(original);
   await page.getByRole('button',{name:'Logout',exact:true}).click();
   await expect(page.getByRole('heading',{level:1})).toContainText('Your experience.');
 });
